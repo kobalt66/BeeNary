@@ -1,0 +1,99 @@
+# General stuff #
+
+# Because BeeNary project can only consist of one script you have to define a fixed starting point from with the code will run.
+# This start section is going to be the starting point of the script. (The starting point can be defined anywhere in the script)
+# A section will be defined as a indentifier followed by a colon.
+
+test_section:
+    flyout "Hello world!"       # "flyout" cannot only print variables.
+    flyto end                   # Breaking out of the section to prevent looping through the "start" section again.
+
+start:
+
+    a honey 1       # Define a variable by "sticking" a value to the variable with honey. (Because honey is sticky...)
+                    # The type of the variable is difined by it's given value.
+                    # Now you use the variable as long as it's "alive".
+                    # If you would define another variable that was allready defined before, the existing variable will just be overritten 
+                    # by the new variable.
+                    # Once a variable is on the stack it can be accessed by anywhere in the code as long as it exist's. (No write protection or anything like that)
+
+    flyout a            # A bee will "flyout" your message to the terminal.
+
+    flyto test_section  # A bee will "fly to" the given section.
+
+
+    end:                # This "end" section will act as an exit point to prevent an infinate loop.
+        sting a         # Variables will be kept on the stack as long as you don't delete it.
+                        # "Kill" the variable with a (bee sting).
+
+:end: # This "end" token will stop the application when being encountered.
+
+##########################################################################################################
+Terminal:
+
+> ./beenary.out
+1
+Hello world!
+>
+__________________________________________________________________________________________________________
+
+# Loops #
+
+start:
+
+flyout "Loop!"
+flyto start
+
+:end:
+
+##########################################################################################################
+Terminal:
+
+> ./loop.out
+Loop!
+Loop!
+Loop!
+Loop!
+Loop!
+Loop!
+...
+__________________________________________________________________________________________________________
+
+# Maths #
+
+start:
+
+# In mathamatical expressions the left value will be added to /subtracted from /divided by /multiplied by the right value. 
+add 1 2      # 2 + 1 = 3
+sub 1 2      # 2 - 1 = 1
+mul 1 2      # 2 * 1 = 2
+div 1 2      # 2 / 1 = 2
+
+# We can even store the result.
+result honey add 2 8    # Now "result" will contain the value of 10.
+
+flyout result
+
+# We can even create more complex calculations.
+result honey 
+    div             # The way tokens and expressions are aligned in the code doesn't matter.  
+        add         # It just important how the different components of a code block are ordered.
+            mul 
+            2 2 
+        2
+    2
+
+flyout result
+
+# This weirdness translate's to: 2 / ((2 * 2) + 2) 
+
+:end:
+
+##########################################################################################################
+Terminal:
+
+> ./math.out
+10
+3
+>
+__________________________________________________________________________________________________________
