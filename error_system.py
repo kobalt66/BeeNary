@@ -14,6 +14,7 @@ class ErrorSystem:
                 exit_program = True
             print("(Error) " + e.get_msg())
 
+        self.errors = []
         self.execute_exit(exit_program)
 
     def throw_warnings(self):
@@ -24,6 +25,7 @@ class ErrorSystem:
                 exit_program = True
             print("(Warning) " + w.get_msg())
 
+        self.warnings = []
         self.execute_exit(exit_program)
 
     def create_error(self, code, type, msg = "Something went wrong...", ln = -1):
