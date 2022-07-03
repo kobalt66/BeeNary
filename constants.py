@@ -90,3 +90,55 @@ INVALID_MATH_OPPERATION                 = 0xd15
 INVALID_LIST_USAGE_EXCEPTION            = 0xd16
 MULTI_HIVE_EXCEPTION                    = 0xd17
 MULTI_START_EXCEPTION                   = 0xd18
+
+#####################################################
+# WARNING codes
+#####################################################
+
+STUNG_INVINCIBLE_MEMBER                 = 0xe01
+UNUSED_VARIABLE                         = 0xe02
+MEMBER_NAME_COLLISION                   = 0xe03
+INFINITE_LOOP                           = 0xe04
+
+#####################################################
+# WARNING codes
+#####################################################
+
+LEXING                  = 0xf01
+PARSING                 = 0xf02
+SORTOUT                 = 0xf03
+INTERPRETING            = 0xf04
+
+#####################################################
+# TO STRING functions
+#####################################################
+
+def get_exclamation_type_str(type):
+    if type is PARSING:      return "PARSER"
+    if type is LEXING:       return "LEXER"
+    if type is SORTOUT:      return "SORTOUT"
+    if type is INTERPRETING: return "INTERPRETER"
+
+def get_exclamation_code_str(code):
+    if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
+    if code is NO_VALUE_EXCEPTION:                      return "NO_VALUE_EXCEPTION"                  
+    if code is INDEX_OUT_OF_RANGE_EXCEPTION:            return "INDEX_OUT_OF_RANGE_EXCEPTION"          
+    if code is FALSE_SYNTAX_EXCEPTION:                  return "FALSE_SYNTAX_EXCEPTION"              
+    if code is FALSE_LIB_USAGE_EXCEPTION:               return "FALSE_LIB_USAGE_EXCEPTION"            
+    if code is LIBRARY_NOT_FOUND_EXCEPTION:             return "LIBRARY_NOT_FOUND_EXCEPTION"        
+    if code is FALSE_LIB_FUNCTION_USAGE_EXCEPTION:      return "FALSE_LIB_FUNCTION_USAGE_EXCEPTION"  
+    if code is INVALID_MEMBER_VALUE_EXCEPTION:          return "INVALID_MEMBER_VALUE_EXCEPTION"      
+    if code is MISSING_START_SECTION_EXCEPTION:         return "MISSING_START_SECTION_EXCEPTION"    
+    if code is INVALID_CHARACTER_EXCEPTION:             return "INVALID_CHARACTER_EXCEPTION"        
+    if code is EXPECTED_HIVE_SECTION_EXCEPTION:         return "EXPECTED_HIVE_SECTION_EXCEPTION"    
+    if code is MISSING_ARGUMENTS_EXCEPTION:             return "MISSING_ARGUMENTS_EXCEPTION"        
+    if code is INVALID_EXPRESSION_EXCEPTION:            return "INVALID_EXPRESSION_EXCEPTION"          
+    if code is INVALID_PARAM_DECLARATION_EXCEPTION:     return "INVALID_PARAM_DECLARATION_EXCEPTION"
+    if code is INVALID_MATH_OPPERATION:                 return "INVALID_MATH_OPPERATION"            
+    if code is INVALID_LIST_USAGE_EXCEPTION:            return "INVALID_LIST_USAGE_EXCEPTION"          
+    if code is MULTI_HIVE_EXCEPTION:                    return "MULTI_HIVE_EXCEPTION"                  
+    if code is MULTI_START_EXCEPTION:                   return "MULTI_START_EXCEPTION"
+    if code is STUNG_INVINCIBLE_MEMBER:                 return "STUNG_INVINCIBLE_MEMBER"
+    if code is UNUSED_VARIABLE:                         return "UNUSED_VARIABLE"        
+    if code is MEMBER_NAME_COLLISION:                   return "MEMBER_NAME_COLLISION"  
+    if code is INFINITE_LOOP:                           return "INFINITE_LOOP"                      
