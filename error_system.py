@@ -4,7 +4,7 @@ class ErrorSystem:
     def __init__(self, script):
         self.errors = []
         self.warnings = []
-        self.script
+        self.script = script
 
     def throw_errors(self):
         exit_program = False
@@ -12,7 +12,7 @@ class ErrorSystem:
         for e in self.errors:
             if e.code in [None]:
                 exit_program = True
-            print(e.get_msg())
+            print("(Error) " + e.get_msg())
 
         self.execute_exit(exit_program)
 
@@ -22,19 +22,19 @@ class ErrorSystem:
         for w in self.warnings:
             if w.code in [None]:
                 exit_program = True
-            print(w.get_msg())
+            print("(Warning) " + w.get_msg())
 
         self.execute_exit(exit_program)
 
-    def create_error(self, type, msg, ln):
-        error = exclamation(type, msg, ln)
-        self.errors.append(error, self.script)
+    def create_error(self, code, type, msg = "Something went wrong...", ln = -1):
+        error = exclamation(code, type, msg, ln, self.script)
+        self.errors.append(error)
 
-    def create_warning(self, type, msg, ln):
-        warning = exclamation(type, msg, ln)
-        self.warnings.append(warning, self.script)
+    def create_warning(self, code, type, msg = "Something went wrong...", ln = -1):
+        warning = exclamation(code, type, msg, ln, self.script)
+        self.warnings.append(warning)
 
-    def execute_exit(exit_program):
+    def execute_exit(self, exit_program):
         if exit_program: 
             print("The program seems to have some fatal issues...")
             exit(1)
