@@ -2,6 +2,7 @@ from locale import currency
 from multiprocessing import Condition
 from constants import *
 from classes import *
+import io
 
 sys = None
 
@@ -14,8 +15,16 @@ def run(code, script):
 
     for token in tokens:
         print(token.to_str())
-    
+
+def get_code(path):
+    file = io.open(path, "r")
+    code = file.read()
+    file.close()
+    return code
+
+
 ######################################################################################################
+
 
 class Lexer:
     def __init__(self, code):
@@ -24,25 +33,22 @@ class Lexer:
         self.currChar = '\0'
         self.code = code
         self.tokens = []
+        self.eof = False
 
     def advance(self):
-        eof = False
-
-        if (self.idx + 1) <= len(self.code):
+        if (self.idx + 1) < len(self.code):
             self.idx += 1
-            self.currChar = self.code[self.idx]
-            if self.currChar is '\n':
-                self.ln += 1
-                self.advance()
+            self.currChar = self.code[self.idx]                
         else:
-            eof = True 
+            self.eof = True 
 
-        return eof
+        return self.eof
 
     def advance_condition(self, condition):
-        self.advance()
+        if self.advance():
+            return False
 
-        if condition(self.currChar):
+        if condition():
             return True
         return False
 
@@ -50,29 +56,35 @@ class Lexer:
         global sys
 
         while True:
-            if self.currChar is ':':
+            if self.eof: break
+            if self.currChar == ':':
                 self.tokens.append(token(T_COLON, ':', self.ln))
                 if self.advance(): break
-            if self.currChar is ',':
+            elif self.currChar == ',':
                 self.tokens.append(token(T_COMMA, ',', self.ln))
                 if self.advance(): break
-            if self.currChar is '<':
+            elif self.currChar == '<':
                 self.tokens.append(token(T_LT, '<', self.ln))
                 if self.advance(): break
-            if self.currChar is '>':
+            elif self.currChar == '>':
                 self.tokens.append(token(T_GT, '>', self.ln))
                 if self.advance(): break
-            if self.currChar in '#':
+            elif self.currChar == '#':
                 self.tokens.append(self.comment())
-            if self.currChar in '"':
+            elif self.currChar == '"':
                 self.tokens.append(self.string())
-            if self.currChar in IDENTIFIER_CHARS:
+                if self.advance(): break
+            elif self.currChar in IDENTIFIER_CHARS:
                 self.tokens.append(self.word())
-            if self.currChar in NUMBER_CHARS:
+            elif self.currChar in NUMBER_CHARS:
                 self.tokens.append(self.number())
-            else:
+            elif not self.currChar in ' \0\n\t\r':
                 self.tokens.append(token(T_SYMBOL, self.currChar, self.ln))
                 if self.advance(): break
+            elif self.currChar == '\n':
+                self.ln += 1
+                if self.advance(): break
+            elif self.advance(): break
         
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -94,7 +106,7 @@ class Lexer:
     def comment(self):
         self.advance()
         str_value = self.currChar
-        condition = lambda: True if not self.currChar is '\n' else False 
+        condition = lambda: True if self.currChar != "\n" else False 
 
         while self.advance_condition(condition):
             str_value += self.currChar
@@ -105,7 +117,7 @@ class Lexer:
     def string(self):
         self.advance()
         str_value = self.currChar
-        condition = lambda: True if not self.currChar is '"' else False
+        condition = lambda: True if not self.currChar in '"\n' else False
 
         while self.advance_condition(condition):
             str_value += self.currChar
@@ -115,18 +127,17 @@ class Lexer:
 
     def number(self):
         global sys
-        self.advance()
         str_value = self.currChar
         condition = lambda: True if self.currChar in NUMBER_CHARS else False
         dot_count = 0
 
         while self.advance_condition(condition):
-            if self.currChar is '.':
-                if dot_count is 0:
+            if self.currChar == '.':
+                if dot_count == 0:
                     dot_count = 1
                 else:
                     sys.error_system.create_error(INVALID_NUMBER_EXCEPTION, LEXING, "A floating point number can only have on dot.", self.ln)
             str_value += self.currChar
 
-        type = T_INT if dot_count is 0 else T_FLOAT
+        type = T_INT if dot_count == 0 else T_FLOAT
         return token(type, str_value, self.ln)

@@ -1,4 +1,5 @@
 import error_system as e
+from constants import get_token_type_str
 
 class token:
     def __init__(self, type, str_value, ln, params = None):
@@ -11,7 +12,7 @@ class token:
         return True if self.type is type else False
     
     def to_str(self):
-        return f"TOKEN: <type>, {self.str_value} ({self.ln})"
+        return f"TOKEN: <{get_token_type_str(self.type)}>, {self.str_value} ({self.ln})"
 
 class system:
     def __init__(self, code, script):

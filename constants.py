@@ -3,24 +3,24 @@
 #####################################################
 
 T_IDENTIFIER            = 0xa01
-T_KEYWORD               = 0xa01
-T_TOKEN                 = 0xa02
-T_BUILTIN_FUNCTION      = 0xa03
-T_EXTERN_FUNCTION       = 0xa04
-T_SECTION               = 0xa05
-T_START                 = 0xa06
-T_END                   = 0xa07
-T_HIVE                  = 0xa08
-T_GT                    = 0xa09
-T_LT                    = 0xa10
-T_FLOAT                 = 0xa11
-T_INT                   = 0xa12
-T_STRING                = 0xa13
-T_BOOL                  = 0xa14
-T_COMMENT               = 0xa15
-T_COMMA                 = 0xa16
-T_COLON                 = 0xa17
-T_QUOTE                 = 0xa18
+T_KEYWORD               = 0xa02
+T_TOKEN                 = 0xa03
+T_BUILTIN_FUNCTION      = 0xa04
+T_EXTERN_FUNCTION       = 0xa05
+T_SECTION               = 0xa06
+T_START                 = 0xa07
+T_END                   = 0xa08
+T_HIVE                  = 0xa09
+T_GT                    = 0xa10
+T_LT                    = 0xa11
+T_FLOAT                 = 0xa12
+T_INT                   = 0xa13
+T_STRING                = 0xa14
+T_BOOL                  = 0xa15
+T_COMMENT               = 0xa16
+T_COMMA                 = 0xa17
+T_COLON                 = 0xa18
+T_QUOTE                 = 0xa19
 T_SYMBOL                = 0xa20
 
 #####################################################
@@ -57,7 +57,6 @@ STRING                  = 0xc12
 TOKEN                   = 0xc13
 BUILTIN                 = 0xc14
 EXTERN                  = 0xc15
-
 HONEYCOMB               = 0xc16
 PYTHON                  = 0xc17
 FUNCTIONPTR             = 0xc18
@@ -66,6 +65,8 @@ MEADOW                  = 0xc20
 END                     = 0xc21
 TRACE                   = 0xc22
 HIVE                    = 0xc23
+HONEYPOT                = 0xc24
+STICK                   = 0xc25
 
 #####################################################
 # ERROR codes
@@ -144,6 +145,28 @@ def get_exclamation_code_str(code):
     if code is INFINITE_LOOP:                           return "INFINITE_LOOP"                      
     if code is INVALID_NUMBER_EXCEPTION:                return "INVALID_NUMBER_EXCEPTION"
 
+def get_token_type_str(type):
+    if type is T_IDENTIFIER:            return "IDENTIFIER"        
+    if type is T_KEYWORD:               return "KEYWORD"           
+    if type is T_TOKEN:                 return "TOKEN"             
+    if type is T_BUILTIN_FUNCTION:      return "BUILTIN_FUNCTION"  
+    if type is T_EXTERN_FUNCTION:       return "EXTERN_FUNCTION"   
+    if type is T_SECTION:               return "SECTION"           
+    if type is T_START:                 return "START"             
+    if type is T_END:                   return "END"               
+    if type is T_HIVE:                  return "HIVE"              
+    if type is T_GT:                    return "GT"                
+    if type is T_LT:                    return "LT"                
+    if type is T_FLOAT:                 return "FLOAT"             
+    if type is T_INT:                   return "INT"               
+    if type is T_STRING:                return "STRING"            
+    if type is T_BOOL:                  return "BOOL"              
+    if type is T_COMMENT:               return "COMMENT"           
+    if type is T_COMMA:                 return "COMMA"             
+    if type is T_COLON:                 return "COLON"             
+    if type is T_QUOTE:                 return "QUOTE"             
+    if type is T_SYMBOL:                return "SYMBOL"            
+
 #####################################################
 # INTERPRETER stuff
 #####################################################
@@ -156,6 +179,8 @@ KEYWORDS = [
     "is",
     "in",
     "honey",
+    "stick",
+    "honeypot",
     "not"
 ]
 TOKENS = [
