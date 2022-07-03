@@ -21,7 +21,6 @@ T_COMMENT               = 0xa15
 T_COMMA                 = 0xa16
 T_COLON                 = 0xa17
 T_QUOTE                 = 0xa18
-T_HASH                  = 0xa19
 T_SYMBOL                = 0xa20
 
 #####################################################
@@ -88,8 +87,9 @@ INVALID_EXPRESSION_EXCEPTION            = 0xd13
 INVALID_PARAM_DECLARATION_EXCEPTION     = 0xd14
 INVALID_MATH_OPPERATION                 = 0xd15
 INVALID_LIST_USAGE_EXCEPTION            = 0xd16
-MULTI_HIVE_EXCEPTION                    = 0xd17
-MULTI_START_EXCEPTION                   = 0xd18
+INVALID_NUMBER_EXCEPTION                = 0xd17
+MULTI_HIVE_EXCEPTION                    = 0xd18
+MULTI_START_EXCEPTION                   = 0xd19
 
 #####################################################
 # WARNING codes
@@ -142,3 +142,45 @@ def get_exclamation_code_str(code):
     if code is UNUSED_VARIABLE:                         return "UNUSED_VARIABLE"        
     if code is MEMBER_NAME_COLLISION:                   return "MEMBER_NAME_COLLISION"  
     if code is INFINITE_LOOP:                           return "INFINITE_LOOP"                      
+    if code is INVALID_NUMBER_EXCEPTION:                return "INVALID_NUMBER_EXCEPTION"
+
+#####################################################
+# INTERPRETER stuff
+#####################################################
+
+IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_'
+NUMBER_CHARS = '0123456789.'
+KEYWORDS = [
+    "true",
+    "false",
+    "is",
+    "in",
+    "honey",
+    "not"
+]
+TOKENS = [
+   "honeycomb",
+   "python",
+   "functionptr",
+   "src",
+   "meadow",
+   "end",
+   "trace",
+   "hive"
+]
+BOOLEAN = [
+    "true",
+    "false"
+]
+BUILTIN_FUNCTION = [
+    "div",
+    "add",
+    "mul",
+    "sub",
+    "inv",
+    "flyto",
+    "flyout",
+    "wax",
+    "sting",
+    "take"
+]
