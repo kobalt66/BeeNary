@@ -3,10 +3,10 @@
 :hive:
 
 start:
-    # a honey 1
-    # b stick a
-    # b stick 2
-    # flyout "Hello World!"
+    a honey 1
+    b stick a
+    b stick 2
+    flyout "Hello World!"
 :end:
 
 div  

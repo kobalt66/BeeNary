@@ -1,4 +1,4 @@
-from constants import get_exclamation_type_str, get_exclamation_code_str
+from constants import FATAL_ERRORS, get_exclamation_type_str, get_exclamation_code_str
 
 class ErrorSystem:
     def __init__(self, script):
@@ -10,9 +10,9 @@ class ErrorSystem:
         exit_program = False
 
         for e in self.errors:
-            if e.code in [None]:
+            if e.code in FATAL_ERRORS:
                 exit_program = True
-            print("(Error) " + e.get_msg())
+            print("\n(Error) " + e.get_msg())
 
         self.errors = []
         self.execute_exit(exit_program)
@@ -23,7 +23,7 @@ class ErrorSystem:
         for w in self.warnings:
             if w.code in [None]:
                 exit_program = True
-            print("(Warning) " + w.get_msg())
+            print("\n(Warning) " + w.get_msg())
 
         self.warnings = []
         self.execute_exit(exit_program)
@@ -38,7 +38,7 @@ class ErrorSystem:
 
     def execute_exit(self, exit_program):
         if exit_program: 
-            print("The program seems to have some fatal issues...")
+            print("\n\nThe program seems to have some fatal issues...")
             exit(1)
 
 
