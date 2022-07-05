@@ -10,4 +10,4 @@ wax test :python<"std.py">:
 wax obj :honeycomb<a, b, c>:
 
 
-obj<,>
+obj<>

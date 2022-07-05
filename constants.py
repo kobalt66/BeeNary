@@ -23,7 +23,7 @@ T_COLON                 = 0xa18
 T_QUOTE                 = 0xa19
 T_SYMBOL                = 0xa20
 T_NEWLINE               = 0xa21
-T_WHITESPACE            = 0xa21
+T_WHITESPACE            = 0xa22
 
 #####################################################
 # NODE types
@@ -94,6 +94,8 @@ INVALID_NUMBER_EXCEPTION                = 0xd17
 MULTI_HIVE_EXCEPTION                    = 0xd18
 MULTI_START_EXCEPTION                   = 0xd19
 WRONG_TOKEN_TYPE_EXCEPTION              = 0xd20
+TERMINAL_EXCEPTION                      = 0xd21
+SILENT_EXCEPTION                        = 0xd22
 
 #####################################################
 # WARNING codes
@@ -113,6 +115,7 @@ SIMPLIFYING             = 0xf02
 PARSING                 = 0xf03
 SORTOUT                 = 0xf04
 INTERPRETING            = 0xf05
+TERMINAL                = 0xf06
 
 #####################################################
 # TO STRING functions
@@ -124,6 +127,7 @@ def get_exclamation_type_str(type):
     if type is LEXING:       return "LEXER"
     if type is SORTOUT:      return "SORTOUT"
     if type is INTERPRETING: return "INTERPRETER"
+    if type is TERMINAL:     return "TERMINAL"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -150,6 +154,8 @@ def get_exclamation_code_str(code):
     if code is INFINITE_LOOP:                           return "INFINITE_LOOP"                      
     if code is INVALID_NUMBER_EXCEPTION:                return "INVALID_NUMBER_EXCEPTION"
     if code is WRONG_TOKEN_TYPE_EXCEPTION:              return "WRONG_TOKEN_TYPE_EXCEPTION"
+    if code is TERMINAL_EXCEPTION:                      return "TERMINAL_EXCEPTION"
+    if code is SILENT_EXCEPTION:                        return "SILENT_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -236,5 +242,6 @@ FATAL_ERRORS = [
     INVALID_NUMBER_EXCEPTION,           
     MULTI_HIVE_EXCEPTION,               
     MULTI_START_EXCEPTION,              
-    WRONG_TOKEN_TYPE_EXCEPTION         
+    WRONG_TOKEN_TYPE_EXCEPTION,
+    TERMINAL_EXCEPTION   
 ]

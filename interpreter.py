@@ -1,19 +1,32 @@
 from constants import *
 from classes import *
+from sys import exc_info
 import io
+import os
+
 
 sys = None
 
-def run(code, script):
+def run(code, script, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
     sys = system(code, script)
+    sys.process_argv(argv2)
+    sys.process_argv(argv3)
+    sys.process_argv(argv4)
+    sys.process_argv(argv5)
+    sys.process_argv(argv6)
+    sys.process_argv(argv7)
+    sys.process_argv(argv8)
+    sys.process_argv(argv9)
+    sys.process_argv(argv10)
 
     lexer = Lexer(code)
     tokens = lexer.Phase1()
     tokens = lexer.Phase2()
 
     for token in tokens:
-        print(token.to_str())
+        str = token.to_str(sys.tokens_show_nl, sys.tokens_show_space, sys.show_tokens)
+        if str: print(str)
 
 def get_code(path):
     file = io.open(path, "r")
@@ -91,6 +104,7 @@ class Lexer:
         
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.tokens
 
     def word(self):
@@ -159,55 +173,62 @@ class Lexer:
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.tokens
 
     def simplify_token(self, token_list, idx):
-        colon = token_list[idx]
-        identifier = token_list[idx + 1]
+        try:
+            colon = token_list[idx]
+            identifier = token_list[idx + 1]
 
-        if not colon.same_ln(identifier):
-            sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"':' is at weird place.", colon.ln)
+            if not colon.same_ln(identifier):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"':' is at weird place.", colon.ln)
 
-        if not identifier.typeof(T_TOKEN):
-            sys.error_system.create_error(WRONG_TOKEN_TYPE_EXCEPTION, SIMPLIFYING, f"The token '{identifier.str_value}' is not a valid token.", identifier.ln)
-        
-        type = T_END if identifier.has_value("end") else T_TOKEN
-        type = T_HIVE if identifier.has_value("hive") else type
-        new_token = token(type, identifier.str_value, identifier.ln)
+            if not identifier.typeof(T_TOKEN):
+                sys.error_system.create_error(WRONG_TOKEN_TYPE_EXCEPTION, SIMPLIFYING, f"The token '{identifier.str_value}' is not a valid token.", identifier.ln)
 
-
-        currToken = token_list[idx + 2]
-        if currToken.typeof(T_LT): 
-            token_list, params = self.simplify_params(token_list, idx + 2)
-            new_token = token(type, identifier.str_value, identifier.ln, params)
-
-
-        currToken = token_list[idx + 2]
-        if not currToken.typeof(T_COLON):
-            sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"Expected ':' instead of '{currToken.str_value}'.", currToken.ln)
-
-        token_list.pop(idx)
-        token_list[idx] = new_token
-        token_list.pop(idx + 1)
-
-        return token_list
-    
-    def simplify_identifier(self, token_list, idx):
-        identifier = token_list[idx]
-        followed_by = token_list[idx + 1]
-
-        if followed_by.typeof(T_COLON) and identifier.same_ln(followed_by):
-            type = T_START if identifier.str_value == "start" else T_SECTION
+            type = T_END if identifier.has_value("end") else T_TOKEN
+            type = T_HIVE if identifier.has_value("hive") else type
             new_token = token(type, identifier.str_value, identifier.ln)
 
+
+            currToken = token_list[idx + 2]
+            if currToken.typeof(T_LT): 
+                token_list, params = self.simplify_params(token_list, idx + 2)
+                new_token = token(type, identifier.str_value, identifier.ln, params)
+
+
+            currToken = token_list[idx + 2]
+            if not currToken.typeof(T_COLON):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"Expected ':' instead of '{currToken.str_value}'.", currToken.ln)
+
+            token_list.pop(idx)
             token_list[idx] = new_token
             token_list.pop(idx + 1)
-        elif followed_by.typeof(T_LT):
-            type = T_EXTERN_FUNCTION
-            token_list, params = self.simplify_params(token_list, idx + 1)
-            new_token = token(type, identifier.str_value, identifier.ln, params)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
 
-            token_list[idx] = new_token
+        return token_list
+
+    def simplify_identifier(self, token_list, idx):
+        try:
+            identifier = token_list[idx]
+            followed_by = token_list[idx + 1]
+
+            if followed_by.typeof(T_COLON) and identifier.same_ln(followed_by):
+                type = T_START if identifier.str_value == "start" else T_SECTION
+                new_token = token(type, identifier.str_value, identifier.ln)
+
+                token_list[idx] = new_token
+                token_list.pop(idx + 1)
+            elif followed_by.typeof(T_LT):
+                type = T_EXTERN_FUNCTION
+                token_list, params = self.simplify_params(token_list, idx + 1)
+                new_token = token(type, identifier.str_value, identifier.ln, params)
+
+                token_list[idx] = new_token
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
 
         return token_list
     
