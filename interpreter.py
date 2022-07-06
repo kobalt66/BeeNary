@@ -5,9 +5,14 @@ import io
 
 sys = None
 
-def run(code, script, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
+def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
-    sys = system(code, script)
+    sys = system(code, argv1)
+    
+    if argv1 == "-help":
+        sys.process_help_flag(argv2)
+        exit(0)
+
     sys.process_argv(argv2)
     sys.process_argv(argv3)
     sys.process_argv(argv4)
@@ -22,11 +27,26 @@ def run(code, script, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, ar
     tokens = lexer.Phase1()
     tokens = lexer.Phase2()
 
-    for token in tokens:
-        str = token.to_str(sys.tokens_show_nl, sys.tokens_show_space, sys.show_tokens)
-        if str: print(str)
+    parser = Parser(tokens)
+    nodes = parser.Parse()
+
+    if sys.show_tokens:
+        print("\n\nTOKENS:")
+        for token in tokens:
+            str = token.to_str(sys.tokens_show_nl, sys.tokens_show_space)
+            if str: print(str)
+        print("\n")
+
+    if sys.show_nodes:
+        print("\n\nNODES:")
+        for node in nodes:
+            str = node.to_str(sys.nodes_show_properties)
+            if str: print(str)
+        print("\n")
 
 def get_code(path):
+    if path == "-help": return ""
+
     file = io.open(path, "r")
     code = file.read()
     file.close()
@@ -305,12 +325,17 @@ class Parser:
         if currToken.typeof(T_BUILTIN_FUNCTION):
             try:
                 func = getattr(Parser, currToken.str_value)
-                func()
+                node = func(tokens, idx)
+                return node
             except Exception as e:
                 sys.error_system.create_silent_from_exception(e, PARSING)
 
     def section(self, tokens, idx):
-        pass
+        section = tokens[idx]
+        properties = []
+        type = N_START if section.typeof(T_START) else N_SECTION
+        value = self.string(section.str_value, section.ln)
+        return node(type, section.ln, properties, value=value)
 
     def token(self, tokens, idx):
         pass
@@ -332,3 +357,12 @@ class Parser:
 
     def take(self, tokens, idx):
         pass
+
+    def string(self, str_value, ln):
+        return node(N_VALUE, ln, [STRING], value=str_value)
+    
+    def number(self, type, number, ln):
+        return node(N_VALUE, ln, [type], value=number)
+
+    def number(self, boolean, ln):
+        return node(N_VALUE, ln, [BOOL], value=boolean)

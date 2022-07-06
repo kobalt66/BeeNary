@@ -181,6 +181,45 @@ def get_token_type_str(type):
     if type is T_NEWLINE:               return "NEWLINE"
     if type is T_WHITESPACE:            return "WHITESPACE"           
 
+def get_node_type_to_str(type):
+    if type is N_TOKEN:                 return "TOKEN"    
+    if type is N_FUNCTION:              return "FUNCTION" 
+    if type is N_SECTION:               return "SECTION"  
+    if type is N_START:                 return "START"    
+    if type is N_END:                   return "END"      
+    if type is N_HIVE:                  return "HIVE"     
+    if type is N_VALUE:                 return "VALUE"    
+    if type is N_PARAM:                 return "PARAM"    
+
+def get_node_property_to_str(property):
+    if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
+    if property is HIVE_START:          return "HIVE_START"   
+    if property is HIVE_END:            return "HIVE_END"     
+    if property is INV:                 return "INV"          
+    if property is FLYOUT:              return "FLYOUT"       
+    if property is FLYTO:               return "FLYTO"        
+    if property is STING:               return "STING"        
+    if property is HONEY:               return "HONEY"        
+    if property is TAKE:                return "TAKE"         
+    if property is WAX:                 return "WAX"          
+    if property is FLOAT:               return "FLOAT"        
+    if property is INT:                 return "INT"          
+    if property is BOOL:                return "BOOL"         
+    if property is STRING:              return "STRING"       
+    if property is TOKEN:               return "TOKEN"        
+    if property is BUILTIN:             return "BUILTIN"      
+    if property is EXTERN:              return "EXTERN"       
+    if property is HONEYCOMB:           return "HONEYCOMB"    
+    if property is PYTHON:              return "PYTHON"       
+    if property is FUNCTIONPTR:         return "FUNCTIONPTR"  
+    if property is SRC:                 return "SRC"          
+    if property is MEADOW:              return "MEADOW"       
+    if property is END:                 return "END"          
+    if property is TRACE:               return "TRACE"        
+    if property is HIVE:                return "HIVE"         
+    if property is HONEYPOT:            return "HONEYPOT"     
+    if property is STICK:               return "STICK"        
+
 #####################################################
 # INTERPRETER stuff
 #####################################################

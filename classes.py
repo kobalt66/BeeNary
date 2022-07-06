@@ -1,6 +1,5 @@
-from cgi import parse_multipart
 import error_system as e
-from constants import T_WHITESPACE, get_token_type_str, T_NEWLINE, TERMINAL_EXCEPTION, TERMINAL
+from constants import get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
 
 class token:
     def __init__(self, type, str_value, ln, params = None):
@@ -18,8 +17,7 @@ class token:
     def same_ln(self, token):
         return True if self.ln == token.ln else False    
 
-    def to_str(self, show_nl = False, show_space = False, show_tokens = False):
-        if not show_tokens: return None
+    def to_str(self, show_nl = False, show_space = False):
         if self.typeof(T_WHITESPACE):
             if show_space:
                 return '" "'
@@ -43,6 +41,19 @@ class node:
         self.params = params
         self.ptr = "" # Pointer address to a node on the stack
 
+    def get_value_to_str(self):
+        if not self.value: return ""
+
+        if self.typeof(N_START):
+            return f"Starting the code from here"
+        elif self.value.typeof(N_VALUE):
+            return f"{get_node_property_to_str(self.value.properties[0])} » {self.value.value}"
+        else:
+            return f"{get_node_type_to_str(self.value.type)} » SOME VALUE..."
+
+    def typeof(self, type):
+        return True if type is self.type else False
+
     def has_property(self, property):
         return True if property in self.properties else False
     
@@ -53,6 +64,14 @@ class node:
     def pop_property(self, property):
         if self.has_property(property):
             self.properties.remove(property)
+    
+    def to_str(self, show_properties = False):
+        if show_properties:
+            return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
+        elif not show_properties:
+            return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}] ({self.ln})"
+        else:
+            return f"NO NODE REPRESENTATION FOUND ({self.ln})"
 
 class system:
     def __init__(self, code = "", script = "<terminal>"):
@@ -62,16 +81,53 @@ class system:
         self.tokens_show_nl = False
         self.tokens_show_space = False
         self.show_silent_warnings = False
+        self.show_nodes = False
+        self.nodes_show_properties = False
+
+        self.flags = {
+            "-t"  : "-t\tToggle token printing.", 
+            "-nl" : "-nl\tToggle newline printing.",
+            "-ws" : "-ws\tToggle whitespace printing.",
+            "-sw" : "-sw\tShow silent warnings.",
+            "-n"  : "-n\tToggle node printing.",
+            "-np" : "-np\tToggle node property printing."
+        }
+
+    def process_help_flag(self, argv2 = None):
+        if not argv2:
+            print("\n\n" + '-' * 50)
+            for k, v in self.flags.items():
+                print("\n" + v)
+            print("\n" + '-' * 50)
+        else:
+            try:
+                description = self.flags[argv2]
+                print(f"Description - {argv2}:\n\t{description}")
+            except KeyError:
+                self.error_system.create_warning(TERMINAL_EXCEPTION, TERMINAL, f"The flag '{argv2}' does not exist.")
+
+        self.error_system.throw_errors()
+        self.error_system.throw_warnings()
 
     def process_argv(self, argv):
+        if argv == "-help":
+            self.error_system.create_error(TERMINAL_EXCEPTION, TERMINAL, "Invalid flag combination.")
+
         if argv == "-t":
             self.show_tokens = True
-        elif argv == "-n":
+        elif argv == "-nl":
             self.tokens_show_nl = True
-        elif argv == "-w":
+        elif argv == "-ws":
             self.tokens_show_space = True
         elif argv == "-sw":
-            self.show_silent_warnings = True 
+            self.show_silent_warnings = True
+        elif argv == "-n":
+            self.show_nodes = True
+        elif argv == "-np":
+            self.nodes_show_properties = True
+
+        self.error_system.throw_errors()
+        self.error_system.throw_warnings()
 
     def process_argv_list(self, argv):
         # Error handling 
