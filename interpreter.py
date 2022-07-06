@@ -1,8 +1,6 @@
 from constants import *
 from classes import *
-from sys import exc_info
 import io
-import os
 
 
 sys = None
