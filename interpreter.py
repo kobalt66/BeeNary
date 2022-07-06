@@ -272,3 +272,63 @@ class Lexer:
             token_list.pop(idx)
 
         return token_list, params
+
+
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.expression_types   = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.section_types      = [T_SECTION, T_START]
+        self.token_types        = [T_TOKEN, T_HIVE, T_END]
+
+    def Parse(self):
+        node_list = []
+        idx = 0
+
+        while idx < len(self.tokens):
+            currToken = self.tokens[idx]
+
+            if currToken.type in self.expression_types:
+                node_list.append(self.expr(self.tokens, idx))
+            elif currToken.type in self.section_types:
+                node_list.append(self.section(self.tokens, idx))
+            elif currToken.type in self.token_types:
+                node_list.append(self.token(self.tokens, idx))
+
+            idx += 1
+
+        return node_list
+
+    def expr(self, tokens, idx):
+        currToken = tokens[idx]
+
+        if currToken.typeof(T_BUILTIN_FUNCTION):
+            try:
+                func = getattr(Parser, currToken.str_value)
+                func()
+            except Exception as e:
+                sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def section(self, tokens, idx):
+        pass
+
+    def token(self, tokens, idx):
+        pass
+
+    def params(self, token):
+        pass
+
+    def inv(self, tokens, idx):
+        pass
+
+    def flyto(self, tokens, idx):
+        pass
+
+    def wax(self, tokens, idx):
+        pass
+
+    def sting(self, tokens, idx):
+        pass
+
+    def take(self, tokens, idx):
+        pass

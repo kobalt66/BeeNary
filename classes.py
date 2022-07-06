@@ -1,3 +1,4 @@
+from cgi import parse_multipart
 import error_system as e
 from constants import T_WHITESPACE, get_token_type_str, T_NEWLINE, TERMINAL_EXCEPTION, TERMINAL
 
@@ -31,6 +32,27 @@ class token:
             return f"TOKEN: <{get_token_type_str(self.type)}>, {self.str_value} ({self.ln})"
         else:
             return f'NO TOKEN REPRESENTATION FOUND ({self.ln})'
+
+class node:
+    def __init__(self, type, ln, properties, child = None, value = None, params = None):
+        self.type = type
+        self.ln = ln
+        self.properties = properties
+        self.child = child
+        self.value = value
+        self.params = params
+        self.ptr = "" # Pointer address to a node on the stack
+
+    def has_property(self, property):
+        return True if property in self.properties else False
+    
+    def add_property(self, property):
+        if not self.has_property(property):
+            self.properties.append(property)
+
+    def pop_property(self, property):
+        if self.has_property(property):
+            self.properties.remove(property)
 
 class system:
     def __init__(self, code = "", script = "<terminal>"):
