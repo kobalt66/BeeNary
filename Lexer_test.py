@@ -1,8 +1,12 @@
+from constants import TERMINAL, TERMINAL_EXCEPTION
 import interpreter as BeeNary
-import sys
+from classes import system
+import sys as s
 
+sys = system()
+argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10 = sys.process_argv_list(s.argv)
 
-code = BeeNary.get_code(sys.argv[1])
-BeeNary.run(code, sys.argv[1])
-#code = BeeNary.get_code("test.b")
-#BeeNary.run(code, "test.b")
+code = BeeNary.get_code(argv1)
+BeeNary.run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10)
+#code = BeeNary.get_code("test2.b")
+#BeeNary.run(code, "test2.b")

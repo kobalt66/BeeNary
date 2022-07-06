@@ -22,6 +22,8 @@ T_COMMA                 = 0xa17
 T_COLON                 = 0xa18
 T_QUOTE                 = 0xa19
 T_SYMBOL                = 0xa20
+T_NEWLINE               = 0xa21
+T_WHITESPACE            = 0xa22
 
 #####################################################
 # NODE types
@@ -91,6 +93,9 @@ INVALID_LIST_USAGE_EXCEPTION            = 0xd16
 INVALID_NUMBER_EXCEPTION                = 0xd17
 MULTI_HIVE_EXCEPTION                    = 0xd18
 MULTI_START_EXCEPTION                   = 0xd19
+WRONG_TOKEN_TYPE_EXCEPTION              = 0xd20
+TERMINAL_EXCEPTION                      = 0xd21
+SILENT_EXCEPTION                        = 0xd22
 
 #####################################################
 # WARNING codes
@@ -106,9 +111,11 @@ INFINITE_LOOP                           = 0xe04
 #####################################################
 
 LEXING                  = 0xf01
-PARSING                 = 0xf02
-SORTOUT                 = 0xf03
-INTERPRETING            = 0xf04
+SIMPLIFYING             = 0xf02
+PARSING                 = 0xf03
+SORTOUT                 = 0xf04
+INTERPRETING            = 0xf05
+TERMINAL                = 0xf06
 
 #####################################################
 # TO STRING functions
@@ -116,9 +123,11 @@ INTERPRETING            = 0xf04
 
 def get_exclamation_type_str(type):
     if type is PARSING:      return "PARSER"
+    if type is SIMPLIFYING:  return "SIMPLIFYING"
     if type is LEXING:       return "LEXER"
     if type is SORTOUT:      return "SORTOUT"
     if type is INTERPRETING: return "INTERPRETER"
+    if type is TERMINAL:     return "TERMINAL"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -144,6 +153,9 @@ def get_exclamation_code_str(code):
     if code is MEMBER_NAME_COLLISION:                   return "MEMBER_NAME_COLLISION"  
     if code is INFINITE_LOOP:                           return "INFINITE_LOOP"                      
     if code is INVALID_NUMBER_EXCEPTION:                return "INVALID_NUMBER_EXCEPTION"
+    if code is WRONG_TOKEN_TYPE_EXCEPTION:              return "WRONG_TOKEN_TYPE_EXCEPTION"
+    if code is TERMINAL_EXCEPTION:                      return "TERMINAL_EXCEPTION"
+    if code is SILENT_EXCEPTION:                        return "SILENT_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -165,7 +177,9 @@ def get_token_type_str(type):
     if type is T_COMMA:                 return "COMMA"             
     if type is T_COLON:                 return "COLON"             
     if type is T_QUOTE:                 return "QUOTE"             
-    if type is T_SYMBOL:                return "SYMBOL"            
+    if type is T_SYMBOL:                return "SYMBOL" 
+    if type is T_NEWLINE:               return "NEWLINE"
+    if type is T_WHITESPACE:            return "WHITESPACE"           
 
 #####################################################
 # INTERPRETER stuff
@@ -208,4 +222,26 @@ BUILTIN_FUNCTION = [
     "wax",
     "sting",
     "take"
+]
+FATAL_ERRORS = [
+    VARIABLE_NOT_FOUND_EXCEPTION,       
+    NO_VALUE_EXCEPTION,                 
+    INDEX_OUT_OF_RANGE_EXCEPTION,       
+    FALSE_SYNTAX_EXCEPTION,             
+    FALSE_LIB_USAGE_EXCEPTION,          
+    LIBRARY_NOT_FOUND_EXCEPTION,        
+    FALSE_LIB_FUNCTION_USAGE_EXCEPTION,
+    INVALID_MEMBER_VALUE_EXCEPTION,    
+    MISSING_START_SECTION_EXCEPTION,        
+    EXPECTED_HIVE_SECTION_EXCEPTION,    
+    MISSING_ARGUMENTS_EXCEPTION,        
+    INVALID_EXPRESSION_EXCEPTION,       
+    INVALID_PARAM_DECLARATION_EXCEPTION,
+    INVALID_MATH_OPPERATION,            
+    INVALID_LIST_USAGE_EXCEPTION,       
+    INVALID_NUMBER_EXCEPTION,           
+    MULTI_HIVE_EXCEPTION,               
+    MULTI_START_EXCEPTION,              
+    WRONG_TOKEN_TYPE_EXCEPTION,
+    TERMINAL_EXCEPTION   
 ]
