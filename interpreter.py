@@ -26,8 +26,9 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     lexer = Lexer(code)
     tokens = lexer.Phase1()
     tokens = lexer.Phase2()
+    tokens_final = lexer.get_final_token_list(tokens)
 
-    parser = Parser(tokens)
+    parser = Parser(tokens_final)
     nodes = parser.Parse()
 
     if sys.show_tokens:
@@ -293,69 +294,136 @@ class Lexer:
 
         return token_list, params
 
+    def get_final_token_list(self, token_list):
+        final_token_list = []
+        for token in self.tokens:
+            if token.type in [T_COMMENT, T_WHITESPACE]:
+                continue
+            final_token_list.append(token)
+
+        return final_token_list
+
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.expression_types   = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
-        self.section_types      = [T_SECTION, T_START]
-        self.token_types        = [T_TOKEN, T_HIVE, T_END]
+        self.expression_types       = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.section_types          = [T_SECTION, T_START]
+        self.token_types            = [T_TOKEN, T_HIVE, T_END]
+        self.inv_condition_types    = [N_VALUE]
+        self.valid_operators        = ["is", "not", "in"]
+
+        self.node_list = []
+        self.idx = 0
 
     def Parse(self):
-        node_list = []
-        idx = 0
-
-        while idx < len(self.tokens):
-            currToken = self.tokens[idx]
+        while self.idx < len(self.tokens):
+            currToken = self.tokens[self.idx]
 
             if currToken.type in self.expression_types:
-                node_list.append(self.expr(self.tokens, idx))
+                node = self.expr(self.tokens)
+                if node: self.node_list.append(node)
             elif currToken.type in self.section_types:
-                node_list.append(self.section(self.tokens, idx))
+                self.node_list.append(self.section(self.tokens))
             elif currToken.type in self.token_types:
-                node_list.append(self.token(self.tokens, idx))
+                self.node_list.append(self.token(self.tokens))
 
-            idx += 1
+            self.idx += 1
 
-        return node_list
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        return self.node_list
 
-    def expr(self, tokens, idx):
-        currToken = tokens[idx]
+    def expr(self, tokens):
+        currToken = tokens[self.idx]
 
         if currToken.typeof(T_BUILTIN_FUNCTION):
             try:
-                func = getattr(Parser, currToken.str_value)
-                node = func(tokens, idx)
-                return node
+                func = getattr(self, currToken.str_value)
+                func(tokens)
+                return None
             except Exception as e:
                 sys.error_system.create_silent_from_exception(e, PARSING)
+        elif currToken.typeof(T_STRING):
+            return self.string(currToken.str_value, currToken.ln)
+        elif currToken.type in [T_INT, T_FLOAT]:
+            return self.number(currToken.type, currToken.str_value, currToken.ln)
+        elif currToken.typeof(T_BOOL):
+            return self.boolean(currToken.str_value, currToken.ln)
+        elif currToken.typeof(T_IDENTIFIER):
+            return self.identifier(currToken.str_value, currToken.ln)
+        elif currToken.typeof(T_NEWLINE):
+            return None
 
-    def section(self, tokens, idx):
-        section = tokens[idx]
+    def section(self, tokens):
+        section = tokens[self.idx]
         properties = []
         type = N_START if section.typeof(T_START) else N_SECTION
         value = self.string(section.str_value, section.ln)
         return node(type, section.ln, properties, value=value)
 
-    def token(self, tokens, idx):
+    def token(self, tokens):
         pass
 
     def params(self, token):
         pass
 
-    def inv(self, tokens, idx):
+    def operators(self, tokens):
+        try:
+            ops = []
+            op_idx = 0
+            while True:
+                op = tokens[self.idx + op_idx]
+
+                if op_idx == 0:
+                    if not op.typeof(T_KEYWORD) or not op.str_value in self.valid_operators:
+                        sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a valid operator (" + ' '.join(op for op in self.valid_operators) + ").", op.ln)
+                elif not op.typeof(T_KEYWORD) or not op.str_value in self.valid_operators:
+                    break
+
+                ops.append(op)
+                op_idx += 1
+
+            self.idx += op_idx - 1
+            return ops
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def inv(self, tokens):
+        try:
+            inv = tokens[self.idx]
+            
+            self.idx += 1
+            left = self.expr(tokens)
+            if not left.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(left.type)}' is invalid.", left.ln)
+        
+            self.idx += 1
+            operators = self.operators(tokens)
+            
+            self.idx += 1
+            right = self.expr(tokens)
+            if not right.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(right.type)}' is invalid.", left.ln)
+        
+            self.idx += 1
+            expr = self.expr(tokens)
+            properties = [BUILTIN, INV]
+
+            self.node_list.append(node(N_FUNCTION, inv.ln, properties, expr, child = (left, right), operators = operators))
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def flyto(self, tokens):
         pass
 
-    def flyto(self, tokens, idx):
+    def wax(self, tokens):
         pass
 
-    def wax(self, tokens, idx):
+    def sting(self, tokens):
         pass
 
-    def sting(self, tokens, idx):
-        pass
-
-    def take(self, tokens, idx):
+    def take(self, tokens):
         pass
 
     def string(self, str_value, ln):
@@ -364,5 +432,10 @@ class Parser:
     def number(self, type, number, ln):
         return node(N_VALUE, ln, [type], value=number)
 
-    def number(self, boolean, ln):
+    def boolean(self, boolean, ln):
         return node(N_VALUE, ln, [BOOL], value=boolean)
+    
+    def identifier(self, name, ln):
+        identifier = node(N_VALUE, ln, [IDENTIFIER])
+        identifier.ptr = name
+        return identifier

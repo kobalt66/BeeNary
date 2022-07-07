@@ -32,13 +32,14 @@ class token:
             return f'NO TOKEN REPRESENTATION FOUND ({self.ln})'
 
 class node:
-    def __init__(self, type, ln, properties, child = None, value = None, params = None):
+    def __init__(self, type, ln, properties, child = None, value = None, params = None, operators = None):
         self.type = type
         self.ln = ln
         self.properties = properties
         self.child = child
         self.value = value
         self.params = params
+        self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
 
     def get_value_to_str(self):

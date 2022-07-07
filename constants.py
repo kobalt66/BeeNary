@@ -69,6 +69,8 @@ TRACE                   = 0xc22
 HIVE                    = 0xc23
 HONEYPOT                = 0xc24
 STICK                   = 0xc25
+LIST                    = 0xc26
+IDENTIFIER              = 0xc27
 
 #####################################################
 # ERROR codes
@@ -218,7 +220,9 @@ def get_node_property_to_str(property):
     if property is TRACE:               return "TRACE"        
     if property is HIVE:                return "HIVE"         
     if property is HONEYPOT:            return "HONEYPOT"     
-    if property is STICK:               return "STICK"        
+    if property is STICK:               return "STICK"
+    if property is LIST:                return "LIST"
+    if property is IDENTIFIER:          return "IDENTIFIER"      
 
 #####################################################
 # INTERPRETER stuff
