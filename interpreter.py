@@ -321,8 +321,8 @@ class Parser:
             currToken = self.tokens[self.idx]
 
             if currToken.type in self.expression_types:
-                node = self.expr(self.tokens)
-                if node: self.node_list.append(node)
+                expr = self.expr(self.tokens)
+                if expr: self.node_list.append(expr)
             elif currToken.type in self.section_types:
                 self.node_list.append(self.section(self.tokens))
             elif currToken.type in self.token_types:
@@ -332,18 +332,26 @@ class Parser:
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.node_list
 
     def expr(self, tokens):
         currToken = tokens[self.idx]
 
         if currToken.typeof(T_BUILTIN_FUNCTION):
-            try:
-                func = getattr(self, currToken.str_value)
-                func(tokens)
-                return None
-            except Exception as e:
-                sys.error_system.create_silent_from_exception(e, PARSING)
+            if currToken.has_value("inv"):
+                return self.inv(tokens)
+            if currToken.has_value("flyout"):
+                return self.flyout(tokens)
+            if currToken.has_value("flyto"):
+                return self.flyto(tokens)
+            if currToken.has_value("wax"):
+                return self.wax(tokens)
+            if currToken.has_value("sting"):
+                return self.sting(tokens)
+            if currToken.has_value("take"):
+                return self.take(tokens)
+            return None
         elif currToken.typeof(T_STRING):
             return self.string(currToken.str_value, currToken.ln)
         elif currToken.type in [T_INT, T_FLOAT]:
@@ -410,9 +418,12 @@ class Parser:
             expr = self.expr(tokens)
             properties = [BUILTIN, INV]
 
-            self.node_list.append(node(N_FUNCTION, inv.ln, properties, expr, child = (left, right), operators = operators))
+            self.node_list.append(node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators))
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def flyout(self, tokens):
+        pass
 
     def flyto(self, tokens):
         pass
