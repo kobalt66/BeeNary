@@ -17,12 +17,12 @@ class token:
     def same_ln(self, token):
         return True if self.ln == token.ln else False    
 
-    def to_str(self, show_nl = False, show_space = False):
+    def to_str(self, sys):
         if self.typeof(T_WHITESPACE):
-            if show_space:
+            if sys.tokens_show_space:
                 return '" "'
         elif self.typeof(T_NEWLINE):
-            if show_nl:
+            if sys.tokens_show_nl:
                 return f"\\n"
         elif self.params:
             return f"{self.str_value} ({self.ln}) params: [" + ' '.join(e.str_value for e in self.params) + "]" 
@@ -41,6 +41,11 @@ class node:
         self.params = params
         self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
+
+    def get_member_properties(self, member):
+        if isinstance(member, node):
+            return ' '.join(get_node_property_to_str(p) for p in member.properties)
+        return ''
 
     def get_value_to_str(self):
         if not self.value: return ""
@@ -66,10 +71,12 @@ class node:
         if self.has_property(property):
             self.properties.remove(property)
     
-    def to_str(self, show_properties = False):
-        if show_properties:
+    def to_str(self, sys):
+        if sys.nodes_show_properties:
+            if sys.nodes_show_child_properties:
+                return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()} ({self.get_member_properties(self.value)})], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
             return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
-        elif not show_properties:
+        elif not sys.nodes_show_properties:
             return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}] ({self.ln})"
         else:
             return f"NO NODE REPRESENTATION FOUND ({self.ln})"
@@ -84,6 +91,7 @@ class system:
         self.show_silent_warnings = False
         self.show_nodes = False
         self.nodes_show_properties = False
+        self.nodes_show_child_properties = False
 
         self.flags = {
             "-t"  : "-t\tToggle token printing.", 
@@ -91,7 +99,8 @@ class system:
             "-ws" : "-ws\tToggle whitespace printing.",
             "-sw" : "-sw\tShow silent warnings.",
             "-n"  : "-n\tToggle node printing.",
-            "-np" : "-np\tToggle node property printing."
+            "-np" : "-np\tToggle node property printing.",
+            "-cp" : "-cp\tToggle property printing of a child node."
         }
 
     def process_help_flag(self, argv2 = None):
@@ -126,6 +135,8 @@ class system:
             self.show_nodes = True
         elif argv == "-np":
             self.nodes_show_properties = True
+        elif argv == "-cp":
+            self.nodes_show_child_properties = True
 
         self.error_system.throw_errors()
         self.error_system.throw_warnings()

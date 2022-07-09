@@ -34,14 +34,14 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     if sys.show_tokens:
         print("\n\nTOKENS:")
         for token in tokens:
-            str = token.to_str(sys.tokens_show_nl, sys.tokens_show_space)
+            str = token.to_str(sys)
             if str: print(str)
         print("\n")
 
     if sys.show_nodes:
         print("\n\nNODES:")
         for node in nodes:
-            str = node.to_str(sys.nodes_show_properties)
+            str = node.to_str(sys)
             if str: print(str)
         print("\n")
 
@@ -397,7 +397,7 @@ class Parser:
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
-    def inv(self, tokens):
+    def inv(self, tokens):  
         try:
             inv = tokens[self.idx]
             
@@ -418,15 +418,39 @@ class Parser:
             expr = self.expr(tokens)
             properties = [BUILTIN, INV]
 
-            self.node_list.append(node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators))
+            return node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators)        
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
     def flyout(self, tokens):
-        pass
+        try:
+            flyout = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not value.typeof(N_VALUE):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a value (string, number,...).", flyout.ln)
+
+            properties = [BUILTIN, FLYOUT]
+
+            return node(N_FUNCTION, flyout.ln, properties, value = value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def flyto(self, tokens):
-        pass
+        try:
+            flyto = tokens[self.idx]
+
+            self.idx += 1
+            section = self.expr(tokens)
+            if not section or not section.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected an identifier of a section.", flyto.ln)
+
+            properties = [BUILTIN, FLYTO]
+
+            return node(N_FUNCTION, flyto.ln, properties, value = section)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def wax(self, tokens):
         pass
