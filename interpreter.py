@@ -310,6 +310,7 @@ class Parser:
         self.expression_types       = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
+        self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
         self.inv_condition_types    = [N_VALUE]
         self.valid_operators        = ["is", "not", "in"]
 
@@ -336,31 +337,36 @@ class Parser:
         return self.node_list
 
     def expr(self, tokens):
-        currToken = tokens[self.idx]
+        try:
+            currToken = tokens[self.idx]
 
-        if currToken.typeof(T_BUILTIN_FUNCTION):
-            if currToken.has_value("inv"):
-                return self.inv(tokens)
-            if currToken.has_value("flyout"):
-                return self.flyout(tokens)
-            if currToken.has_value("flyto"):
-                return self.flyto(tokens)
-            if currToken.has_value("wax"):
-                return self.wax(tokens)
-            if currToken.has_value("sting"):
-                return self.sting(tokens)
-            if currToken.has_value("take"):
-                return self.take(tokens)
-            return None
-        elif currToken.typeof(T_STRING):
-            return self.string(currToken.str_value, currToken.ln)
-        elif currToken.type in [T_INT, T_FLOAT]:
-            return self.number(currToken.type, currToken.str_value, currToken.ln)
-        elif currToken.typeof(T_BOOL):
-            return self.boolean(currToken.str_value, currToken.ln)
-        elif currToken.typeof(T_IDENTIFIER):
-            return self.identifier(currToken.str_value, currToken.ln)
-        elif currToken.typeof(T_NEWLINE):
+            if currToken.typeof(T_BUILTIN_FUNCTION):
+                if currToken.has_value("inv"):
+                    return self.inv(tokens)
+                if currToken.has_value("flyout"):
+                    return self.flyout(tokens)
+                if currToken.has_value("flyto"):
+                    return self.flyto(tokens)
+                if currToken.has_value("wax"):
+                    return self.wax(tokens)
+                if currToken.has_value("sting"):
+                    return self.sting(tokens)
+                if currToken.has_value("take"):
+                    return self.take(tokens)
+
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
+                return None
+            elif currToken.typeof(T_STRING):
+                return self.string(currToken.str_value, currToken.ln)
+            elif currToken.type in [T_INT, T_FLOAT]:
+                return self.number(currToken.type, currToken.str_value, currToken.ln)
+            elif currToken.typeof(T_BOOL):
+                return self.boolean(currToken.str_value, currToken.ln)
+            elif currToken.typeof(T_IDENTIFIER):
+                return self.identifier(currToken.str_value, currToken.ln)
+            elif currToken.typeof(T_NEWLINE):
+                return None
+        except:
             return None
 
     def section(self, tokens):
@@ -397,25 +403,32 @@ class Parser:
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
-    def inv(self, tokens):  
+    def inv(self, tokens):
         try:
             inv = tokens[self.idx]
             
             self.idx += 1
             left = self.expr(tokens)
-            if not left.type in self.inv_condition_types:
-                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(left.type)}' is invalid.", left.ln)
+            if not left:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The left condition element is missing.", inv.ln)
+            elif not left.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(left.type)}' is invalid.", inv.ln)
         
             self.idx += 1
             operators = self.operators(tokens)
             
             self.idx += 1
             right = self.expr(tokens)
-            if not right.type in self.inv_condition_types:
-                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(right.type)}' is invalid.", left.ln)
+            if not right:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The right condition element is missing.", inv.ln)
+            elif not right.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(right.type)}' is invalid.", inv.ln)
         
             self.idx += 1
             expr = self.expr(tokens)
+            if not expr:
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The inv-statement cannot be left without a following expression.", inv.ln)
+
             properties = [BUILTIN, INV]
 
             return node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators)        
@@ -453,7 +466,26 @@ class Parser:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
     def wax(self, tokens):
-        pass
+        try:
+            wax = tokens[self.idx]
+
+            self.idx += 1
+            name = self.expr(tokens)
+            if not name or not name.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected an identifier as the member's name.", wax.ln)
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value:
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The meadow member must have a value!", wax.ln)
+            elif not all(item in self.member_value_types for item in value.properties):
+                sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A meadow member cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", wax.ln)
+
+            properties = [BUILTIN, WAX, MEADOW_MEMBER]
+
+            return node(N_FUNCTION, wax.ln, properties, name, value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def sting(self, tokens):
         pass
@@ -465,7 +497,8 @@ class Parser:
         return node(N_VALUE, ln, [STRING], value=str_value)
     
     def number(self, type, number, ln):
-        return node(N_VALUE, ln, [type], value=number)
+        property = INT if type is T_INT else FLOAT
+        return node(N_VALUE, ln, [property], value=number)
 
     def boolean(self, boolean, ln):
         return node(N_VALUE, ln, [BOOL], value=boolean)
