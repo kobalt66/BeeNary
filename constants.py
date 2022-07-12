@@ -51,26 +51,26 @@ FLYTO                   = 0xc06
 STING                   = 0xc07
 HONEY                   = 0xc08
 TAKE                    = 0xc09
-WAX                     = 0xc08
-FLOAT                   = 0xc09
-INT                     = 0xc10
-BOOL                    = 0xc11
-STRING                  = 0xc12
-TOKEN                   = 0xc13
-BUILTIN                 = 0xc14
-EXTERN                  = 0xc15
-HONEYCOMB               = 0xc16
-PYTHON                  = 0xc17
-FUNCTIONPTR             = 0xc18
-SRC                     = 0xc19
-MEADOW                  = 0xc20
-END                     = 0xc21
-TRACE                   = 0xc22
-HIVE                    = 0xc23
-HONEYPOT                = 0xc24
-STICK                   = 0xc25
-LIST                    = 0xc26
-IDENTIFIER              = 0xc27
+WAX                     = 0xc10
+FLOAT                   = 0xc11
+INT                     = 0xc12
+BOOL                    = 0xc13
+STRING                  = 0xc14
+TOKEN                   = 0xc15
+BUILTIN                 = 0xc16
+EXTERN                  = 0xc17
+HONEYCOMB               = 0xc18
+PYTHON                  = 0xc19
+FUNCTIONPTR             = 0xc20
+SRC                     = 0xc21
+MEADOW                  = 0xc22
+END                     = 0xc23
+TRACE                   = 0xc24
+HIVE                    = 0xc25
+HONEYPOT                = 0xc26
+STICK                   = 0xc27
+LIST                    = 0xc28
+IDENTIFIER              = 0xc29
 
 #####################################################
 # ERROR codes
@@ -223,6 +223,16 @@ def get_node_property_to_str(property):
     if property is STICK:               return "STICK"
     if property is LIST:                return "LIST"
     if property is IDENTIFIER:          return "IDENTIFIER"      
+
+def get_node_property_by_value(str_value):
+    if str_value == "honeycomb":        return HONEYCOMB   
+    if str_value == "python":           return PYTHON      
+    if str_value == "functionptr":      return FUNCTIONPTR 
+    if str_value == "src":              return SRC         
+    if str_value == "meadow":           return MEADOW      
+    if str_value == "end":              return END         
+    if str_value == "trace":            return TRACE       
+    if str_value == "hive":             return HIVE        
 
 #####################################################
 # INTERPRETER stuff

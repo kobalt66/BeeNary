@@ -311,8 +311,10 @@ class Parser:
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
+        self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL]
         self.inv_condition_types    = [N_VALUE]
         self.valid_operators        = ["is", "not", "in"]
+        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
 
         self.node_list = []
         self.idx = 0
@@ -336,9 +338,9 @@ class Parser:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.node_list
 
-    def expr(self, tokens):
+    def expr(self, tokens = None, token = None):
         try:
-            currToken = tokens[self.idx]
+            currToken = tokens[self.idx] if not token else token
 
             if currToken.typeof(T_BUILTIN_FUNCTION):
                 if currToken.has_value("inv"):
@@ -356,6 +358,8 @@ class Parser:
 
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
+            elif currToken.typeof(T_EXTERN_FUNCTION):
+                return self.extern_function(tokens)
             elif currToken.typeof(T_STRING):
                 return self.string(currToken.str_value, currToken.ln)
             elif currToken.type in [T_INT, T_FLOAT]:
@@ -363,7 +367,12 @@ class Parser:
             elif currToken.typeof(T_BOOL):
                 return self.boolean(currToken.str_value, currToken.ln)
             elif currToken.typeof(T_IDENTIFIER):
-                return self.identifier(currToken.str_value, currToken.ln)
+                if token: return self.simple_identifier(token)
+                return self.identifier(tokens)
+            elif currToken.typeof(T_TOKEN):
+                return self.token(tokens)
+            elif currToken.typeof(T_KEYWORD):
+                return self.keyword(tokens)
             elif currToken.typeof(T_NEWLINE):
                 return None
         except:
@@ -376,12 +385,59 @@ class Parser:
         value = self.string(section.str_value, section.ln)
         return node(type, section.ln, properties, value=value)
 
+    def keyword(self, tokens):
+        keyword = tokens[self.idx]
+        properties = [BUILTIN]
+        if keyword.has_value("honey"):      properties.append(HONEY)
+        
+        if keyword.has_value("honeypot"):   
+            properties.append(HONEYPOT)
+            properties.append(LIST)
+
+            self.idx += 1
+            list = self.expr(tokens)
+            if not list or not list.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "A honeycomb can only be defined with an identifier.", keyword.ln)
+
+            return node(N_FUNCTION, keyword.ln, properties, value = list) 
+        return node(N_FUNCTION, keyword.ln, properties, value = keyword.str_value)
+
     def token(self, tokens):
-        pass
+        token = tokens[self.idx]
+        type = N_END if token.typeof(T_END) else N_TOKEN
+        type = N_HIVE if token.typeof(T_HIVE) else type
+
+        params = None
+        if token.params:
+            params = self.params(token)
+        
+        properties = [BUILTIN, TOKEN]
+        properties.append(get_node_property_by_value(token.str_value))
+        return node(type, token.ln, properties, params = params )
+
+    def extern_function(self, tokens):
+        try:
+            function = tokens[self.idx]
+            params = self.params(function)
+            properties = [EXTERN, IDENTIFIER]
+            
+            n = node(N_FUNCTION, function.ln, properties, params = params) 
+            n.set_ptr(function.str_value)
+            return n       
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def params(self, token):
-        pass
-
+        try:
+            params = []
+            for p in token.params:
+                param = self.expr(token = p)
+                params.append(param)
+            
+            return params
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+        
     def operators(self, tokens):
         try:
             ops = []
@@ -478,7 +534,7 @@ class Parser:
             value = self.expr(tokens)
             if not value:
                 sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The meadow member must have a value!", wax.ln)
-            elif not all(item in self.member_value_types for item in value.properties):
+            elif not any(item in self.member_value_types for item in value.properties):
                 sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A meadow member cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", wax.ln)
 
             properties = [BUILTIN, WAX, MEADOW_MEMBER]
@@ -488,10 +544,39 @@ class Parser:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
     def sting(self, tokens):
-        pass
+        try:
+            sting = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not all(item is IDENTIFIER for item in value.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected a valid identifier.", sting.ln)
+
+            properties = [BUILTIN, STING]
+
+            return node(N_FUNCTION, sting.ln, properties, value = value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def take(self, tokens):
-        pass
+        try:
+            take = tokens[self.idx]
+
+            self.idx += 1
+            list = self.expr(tokens)
+            if not list or not all(item is IDENTIFIER for item in list.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected a valid identifier of a list.", take.ln)
+
+            self.idx += 1
+            idx = self.expr(tokens)
+            if not idx or not all(item is INT for item in idx.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected an idx.", take.ln)
+
+            properties = [BUILTIN, TAKE]
+
+            return node(N_FUNCTION, take.ln, properties, list, idx)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def string(self, str_value, ln):
         return node(N_VALUE, ln, [STRING], value=str_value)
@@ -503,7 +588,44 @@ class Parser:
     def boolean(self, boolean, ln):
         return node(N_VALUE, ln, [BOOL], value=boolean)
     
-    def identifier(self, name, ln):
-        identifier = node(N_VALUE, ln, [IDENTIFIER])
-        identifier.ptr = name
-        return identifier
+    def simple_identifier(self, token):
+        try:
+            identifier = token
+            n = node(N_VALUE, identifier.ln, [IDENTIFIER])
+            n.set_ptr(identifier.str_value)
+            return n
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def identifier(self, tokens):
+        try:
+            identifier = tokens[self.idx]
+
+            if len(tokens) >= self.idx + 2: 
+                following = tokens[self.idx + 1]
+                if following.typeof(T_KEYWORD) and following.has_value("honey"):
+                    self.idx += 2
+                    value = self.expr(tokens)
+                    if not value:
+                        sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The variable must have a value!", identifier.ln)
+                    elif not any(item in self.variable_value_types for item in value.properties):
+                        sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A variable cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
+
+                    properties = [BUILTIN, HONEY, IDENTIFIER]
+                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+                elif following.typeof(T_KEYWORD) and following.has_value("stick"):
+                    self.idx += 2
+                    value = self.expr(tokens)
+                    if not value:
+                        sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Some value is requiered in order to push something to a list.", identifier.ln)
+                    elif not any(item in self.variable_value_types for item in value.properties):
+                        sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A list cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
+
+                    properties = [BUILTIN, STICK, IDENTIFIER]
+                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+
+            n = node(N_VALUE, identifier.ln, [IDENTIFIER])
+            n.set_ptr(identifier.str_value)
+            return n
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)

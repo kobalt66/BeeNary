@@ -1,5 +1,5 @@
 import error_system as e
-from constants import get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
+from constants import IDENTIFIER, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
 
 class token:
     def __init__(self, type, str_value, ln, params = None):
@@ -42,13 +42,20 @@ class node:
         self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
 
+    def get_param_to_str(self, param):
+        if param.has_property(IDENTIFIER):
+            return param.ptr
+        return param.value
+
     def get_member_properties(self, member):
         if isinstance(member, node):
             return ' '.join(get_node_property_to_str(p) for p in member.properties)
         return ''
 
     def get_value_to_str(self):
-        if not self.value: return ""
+        if not self.value: return self.ptr
+        if self.value.has_property(IDENTIFIER):
+            return self.value.ptr
 
         if self.typeof(N_START):
             return f"Starting the code from here"
@@ -71,12 +78,17 @@ class node:
         if self.has_property(property):
             self.properties.remove(property)
     
+    def set_ptr(self, str_value):
+        if str_value: self.ptr = str_value
+
     def to_str(self, sys):
         if sys.nodes_show_properties:
             if sys.nodes_show_child_properties:
                 return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()} ({self.get_member_properties(self.value)})], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
+            elif sys.nodes_show_parameters and self.params:
+                return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}], params: [" + ' '.join(self.get_param_to_str(p) for p in self.params) + "], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
             return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}], [" + ' '.join(get_node_property_to_str(p) for p in self.properties) + f"] ({self.ln})"
-        elif not sys.nodes_show_properties:
+        elif not sys.nodes_show_parameters and not sys.nodes_show_properties:
             return f"NODE: <{get_node_type_to_str(self.type)}>, [{self.get_value_to_str()}] ({self.ln})"
         else:
             return f"NO NODE REPRESENTATION FOUND ({self.ln})"
@@ -92,6 +104,7 @@ class system:
         self.show_nodes = False
         self.nodes_show_properties = False
         self.nodes_show_child_properties = False
+        self.nodes_show_parameters = False
 
         self.flags = {
             "-t"  : "-t\tToggle token printing.", 
@@ -100,7 +113,8 @@ class system:
             "-sw" : "-sw\tShow silent warnings.",
             "-n"  : "-n\tToggle node printing.",
             "-np" : "-np\tToggle node property printing.",
-            "-cp" : "-cp\tToggle property printing of a child node."
+            "-cp" : "-cp\tToggle property printing of a child node.",
+            "-pa" : "-pa\tToggle node parameter printing."
         }
 
     def process_help_flag(self, argv2 = None):
@@ -137,6 +151,8 @@ class system:
             self.nodes_show_properties = True
         elif argv == "-cp":
             self.nodes_show_child_properties = True
+        elif argv == "-pa":
+            self.nodes_show_parameters = True
 
         self.error_system.throw_errors()
         self.error_system.throw_warnings()

@@ -10,4 +10,10 @@ wax test :python<"std.py">:
 wax obj :honeycomb<a, b, c>:
 
 
-obj<>
+start:
+:src<".lib/test.lib">:
+
+test honey obj<1, 2, "Test">
+
+res honey test<2>
+flyout res
