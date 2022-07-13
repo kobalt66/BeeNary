@@ -5,9 +5,14 @@ import io
 
 sys = None
 
-def run(code, script, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
+def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
-    sys = system(code, script)
+    sys = system(code, argv1)
+    
+    if argv1 == "-help":
+        sys.process_help_flag(argv2)
+        exit(0)
+
     sys.process_argv(argv2)
     sys.process_argv(argv3)
     sys.process_argv(argv4)
@@ -21,12 +26,28 @@ def run(code, script, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, ar
     lexer = Lexer(code)
     tokens = lexer.Phase1()
     tokens = lexer.Phase2()
+    tokens_final = lexer.get_final_token_list(tokens)
 
-    for token in tokens:
-        str = token.to_str(sys.tokens_show_nl, sys.tokens_show_space, sys.show_tokens)
-        if str: print(str)
+    parser = Parser(tokens_final)
+    nodes = parser.Parse()
+
+    if sys.show_tokens:
+        print("\n\nTOKENS:")
+        for token in tokens:
+            str = token.to_str(sys)
+            if str: print(str)
+        print("\n")
+
+    if sys.show_nodes:
+        print("\n\nNODES:")
+        for node in nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
 
 def get_code(path):
+    if path == "-help": return ""
+
     file = io.open(path, "r")
     code = file.read()
     file.close()
@@ -272,3 +293,339 @@ class Lexer:
             token_list.pop(idx)
 
         return token_list, params
+
+    def get_final_token_list(self, token_list):
+        final_token_list = []
+        for token in self.tokens:
+            if token.type in [T_COMMENT, T_WHITESPACE]:
+                continue
+            final_token_list.append(token)
+
+        return final_token_list
+
+
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.expression_types       = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.section_types          = [T_SECTION, T_START]
+        self.token_types            = [T_TOKEN, T_HIVE, T_END]
+        self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
+        self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL]
+        self.inv_condition_types    = [N_VALUE]
+        self.valid_operators        = ["is", "not", "in"]
+        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
+
+        self.node_list = []
+        self.idx = 0
+
+    def Parse(self):
+        while self.idx < len(self.tokens):
+            currToken = self.tokens[self.idx]
+
+            if currToken.type in self.expression_types:
+                expr = self.expr(self.tokens)
+                if expr: self.node_list.append(expr)
+            elif currToken.type in self.section_types:
+                self.node_list.append(self.section(self.tokens))
+            elif currToken.type in self.token_types:
+                self.node_list.append(self.token(self.tokens))
+
+            self.idx += 1
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
+        return self.node_list
+
+    def expr(self, tokens = None, token = None):
+        try:
+            currToken = tokens[self.idx] if not token else token
+
+            if currToken.typeof(T_BUILTIN_FUNCTION):
+                if currToken.has_value("inv"):
+                    return self.inv(tokens)
+                if currToken.has_value("flyout"):
+                    return self.flyout(tokens)
+                if currToken.has_value("flyto"):
+                    return self.flyto(tokens)
+                if currToken.has_value("wax"):
+                    return self.wax(tokens)
+                if currToken.has_value("sting"):
+                    return self.sting(tokens)
+                if currToken.has_value("take"):
+                    return self.take(tokens)
+
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
+                return None
+            elif currToken.typeof(T_EXTERN_FUNCTION):
+                return self.extern_function(tokens)
+            elif currToken.typeof(T_STRING):
+                return self.string(currToken.str_value, currToken.ln)
+            elif currToken.type in [T_INT, T_FLOAT]:
+                return self.number(currToken.type, currToken.str_value, currToken.ln)
+            elif currToken.typeof(T_BOOL):
+                return self.boolean(currToken.str_value, currToken.ln)
+            elif currToken.typeof(T_IDENTIFIER):
+                if token: return self.simple_identifier(token)
+                return self.identifier(tokens)
+            elif currToken.typeof(T_TOKEN):
+                return self.token(tokens)
+            elif currToken.typeof(T_KEYWORD):
+                return self.keyword(tokens)
+            elif currToken.typeof(T_NEWLINE):
+                return None
+        except:
+            return None
+
+    def section(self, tokens):
+        section = tokens[self.idx]
+        properties = []
+        type = N_START if section.typeof(T_START) else N_SECTION
+        value = self.string(section.str_value, section.ln)
+        return node(type, section.ln, properties, value=value)
+
+    def keyword(self, tokens):
+        keyword = tokens[self.idx]
+        properties = [BUILTIN]
+        if keyword.has_value("honey"):      properties.append(HONEY)
+        
+        if keyword.has_value("honeypot"):   
+            properties.append(HONEYPOT)
+            properties.append(LIST)
+
+            self.idx += 1
+            list = self.expr(tokens)
+            if not list or not list.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "A honeycomb can only be defined with an identifier.", keyword.ln)
+
+            return node(N_FUNCTION, keyword.ln, properties, value = list) 
+        return node(N_FUNCTION, keyword.ln, properties, value = keyword.str_value)
+
+    def token(self, tokens):
+        token = tokens[self.idx]
+        type = N_END if token.typeof(T_END) else N_TOKEN
+        type = N_HIVE if token.typeof(T_HIVE) else type
+
+        params = None
+        if token.params:
+            params = self.params(token)
+        
+        properties = [BUILTIN, TOKEN]
+        properties.append(get_node_property_by_value(token.str_value))
+        return node(type, token.ln, properties, params = params )
+
+    def extern_function(self, tokens):
+        try:
+            function = tokens[self.idx]
+            params = self.params(function)
+            properties = [EXTERN, IDENTIFIER]
+            
+            n = node(N_FUNCTION, function.ln, properties, params = params) 
+            n.set_ptr(function.str_value)
+            return n       
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def params(self, token):
+        try:
+            params = []
+            for p in token.params:
+                param = self.expr(token = p)
+                params.append(param)
+            
+            return params
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+        
+    def operators(self, tokens):
+        try:
+            ops = []
+            op_idx = 0
+            while True:
+                op = tokens[self.idx + op_idx]
+
+                if op_idx == 0:
+                    if not op.typeof(T_KEYWORD) or not op.str_value in self.valid_operators:
+                        sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a valid operator (" + ' '.join(op for op in self.valid_operators) + ").", op.ln)
+                elif not op.typeof(T_KEYWORD) or not op.str_value in self.valid_operators:
+                    break
+
+                ops.append(op)
+                op_idx += 1
+
+            self.idx += op_idx - 1
+            return ops
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def inv(self, tokens):
+        try:
+            inv = tokens[self.idx]
+            
+            self.idx += 1
+            left = self.expr(tokens)
+            if not left:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The left condition element is missing.", inv.ln)
+            elif not left.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(left.type)}' is invalid.", inv.ln)
+        
+            self.idx += 1
+            operators = self.operators(tokens)
+            
+            self.idx += 1
+            right = self.expr(tokens)
+            if not right:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The right condition element is missing.", inv.ln)
+            elif not right.type in self.inv_condition_types:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The condition element of type '{get_node_type_to_str(right.type)}' is invalid.", inv.ln)
+        
+            self.idx += 1
+            expr = self.expr(tokens)
+            if not expr:
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The inv-statement cannot be left without a following expression.", inv.ln)
+
+            properties = [BUILTIN, INV]
+
+            return node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators)        
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def flyout(self, tokens):
+        try:
+            flyout = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not value.typeof(N_VALUE):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a value (string, number,...).", flyout.ln)
+
+            properties = [BUILTIN, FLYOUT]
+
+            return node(N_FUNCTION, flyout.ln, properties, value = value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def flyto(self, tokens):
+        try:
+            flyto = tokens[self.idx]
+
+            self.idx += 1
+            section = self.expr(tokens)
+            if not section or not section.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected an identifier of a section.", flyto.ln)
+
+            properties = [BUILTIN, FLYTO]
+
+            return node(N_FUNCTION, flyto.ln, properties, value = section)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def wax(self, tokens):
+        try:
+            wax = tokens[self.idx]
+
+            self.idx += 1
+            name = self.expr(tokens)
+            if not name or not name.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected an identifier as the member's name.", wax.ln)
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value:
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The meadow member must have a value!", wax.ln)
+            elif not any(item in self.member_value_types for item in value.properties):
+                sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A meadow member cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", wax.ln)
+
+            properties = [BUILTIN, WAX, MEADOW_MEMBER]
+
+            return node(N_FUNCTION, wax.ln, properties, name, value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def sting(self, tokens):
+        try:
+            sting = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not all(item is IDENTIFIER for item in value.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected a valid identifier.", sting.ln)
+
+            properties = [BUILTIN, STING]
+
+            return node(N_FUNCTION, sting.ln, properties, value = value)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def take(self, tokens):
+        try:
+            take = tokens[self.idx]
+
+            self.idx += 1
+            list = self.expr(tokens)
+            if not list or not all(item is IDENTIFIER for item in list.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected a valid identifier of a list.", take.ln)
+
+            self.idx += 1
+            idx = self.expr(tokens)
+            if not idx or not all(item is INT for item in idx.properties):
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected an idx.", take.ln)
+
+            properties = [BUILTIN, TAKE]
+
+            return node(N_FUNCTION, take.ln, properties, list, idx)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def string(self, str_value, ln):
+        return node(N_VALUE, ln, [STRING], value=str_value)
+    
+    def number(self, type, number, ln):
+        property = INT if type is T_INT else FLOAT
+        return node(N_VALUE, ln, [property], value=number)
+
+    def boolean(self, boolean, ln):
+        return node(N_VALUE, ln, [BOOL], value=boolean)
+    
+    def simple_identifier(self, token):
+        try:
+            identifier = token
+            n = node(N_VALUE, identifier.ln, [IDENTIFIER])
+            n.set_ptr(identifier.str_value)
+            return n
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def identifier(self, tokens):
+        try:
+            identifier = tokens[self.idx]
+
+            if len(tokens) >= self.idx + 2: 
+                following = tokens[self.idx + 1]
+                if following.typeof(T_KEYWORD) and following.has_value("honey"):
+                    self.idx += 2
+                    value = self.expr(tokens)
+                    if not value:
+                        sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The variable must have a value!", identifier.ln)
+                    elif not any(item in self.variable_value_types for item in value.properties):
+                        sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A variable cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
+
+                    properties = [BUILTIN, HONEY, IDENTIFIER]
+                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+                elif following.typeof(T_KEYWORD) and following.has_value("stick"):
+                    self.idx += 2
+                    value = self.expr(tokens)
+                    if not value:
+                        sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Some value is requiered in order to push something to a list.", identifier.ln)
+                    elif not any(item in self.variable_value_types for item in value.properties):
+                        sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A list cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
+
+                    properties = [BUILTIN, STICK, IDENTIFIER]
+                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+
+            n = node(N_VALUE, identifier.ln, [IDENTIFIER])
+            n.set_ptr(identifier.str_value)
+            return n
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)

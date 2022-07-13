@@ -8,10 +8,3 @@ start:
     b stick 2
     flyout "Hello World!"
 :end:
-
-div  
-  add
-    mul 
-    2 2 
-  2
-2

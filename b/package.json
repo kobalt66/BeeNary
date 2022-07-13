@@ -1,0 +1,25 @@
+{
+    "name": "b",
+    "displayName": "BeeNary",
+    "description": "BeeNary programming language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.69.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "b",
+            "aliases": ["BeeNary", "b"],
+            "extensions": [".b"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "b",
+            "scopeName": "source.b",
+            "path": "./syntaxes/b.tmLanguage.json"
+        }]
+    }
+}

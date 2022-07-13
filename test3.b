@@ -1,27 +1,33 @@
-:hive:
-  honeypot list
-:hive:
-  
 start:
-  list stick a
-  list stick 1
-  take 0 list
-  
-  sting list
+    inv 1 is 2 flyout 1
+    inv 1 is not 2 flyto test_two
 
-  a honey list<0>
+test_one:
+    :end<"Ended the program at 'test_one'">:
 
-  inv test<2> a is not 1
-  inv a is not not 1
+test_two:
+    flyout "Hello World!"
+    inv a is 1 flyout "a is indeed 1"
 
-start_two: test<2>
-   :src<".lib/test.lib">:test<2>:src<".lib/test.lib">:
+    wax test true
 
-  test honey obj<1, 2, "Test">
+    b honey a<1, 2, b, 1, "Hello World", hello_world, true>
+    b honey "hello world"
+    flyout b 
+    
+    :trace:
+    
+    sting b
 
-  flyout test<2>test<2>test<2>test<2>test<2>test<2>test<2>
-  test<2>:src<".lib/test.lib">:
-  test<2>:src<".lib/test.lib">:
-  test<2>:src<".lib/test.lib">::src<".lib/test.lib">::src<".lib/test.lib">::src<".lib/test.lib">:
-  v :src<".lib/test.lib">::src<".lib/test.lib">::src<".lib/test.lib">:
-  vtest<2>test<2>test<2>test<2>test<2>test<2>
+    take list 0
+
+:hive:
+    honeypot b
+:hive:
+
+start:
+    a honey 1
+    b stick a
+    b stick 2
+    flyout "Hello World!"
+:end:

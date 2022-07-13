@@ -51,24 +51,26 @@ FLYTO                   = 0xc06
 STING                   = 0xc07
 HONEY                   = 0xc08
 TAKE                    = 0xc09
-WAX                     = 0xc08
-FLOAT                   = 0xc09
-INT                     = 0xc10
-BOOL                    = 0xc11
-STRING                  = 0xc12
-TOKEN                   = 0xc13
-BUILTIN                 = 0xc14
-EXTERN                  = 0xc15
-HONEYCOMB               = 0xc16
-PYTHON                  = 0xc17
-FUNCTIONPTR             = 0xc18
-SRC                     = 0xc19
-MEADOW                  = 0xc20
-END                     = 0xc21
-TRACE                   = 0xc22
-HIVE                    = 0xc23
-HONEYPOT                = 0xc24
-STICK                   = 0xc25
+WAX                     = 0xc10
+FLOAT                   = 0xc11
+INT                     = 0xc12
+BOOL                    = 0xc13
+STRING                  = 0xc14
+TOKEN                   = 0xc15
+BUILTIN                 = 0xc16
+EXTERN                  = 0xc17
+HONEYCOMB               = 0xc18
+PYTHON                  = 0xc19
+FUNCTIONPTR             = 0xc20
+SRC                     = 0xc21
+MEADOW                  = 0xc22
+END                     = 0xc23
+TRACE                   = 0xc24
+HIVE                    = 0xc25
+HONEYPOT                = 0xc26
+STICK                   = 0xc27
+LIST                    = 0xc28
+IDENTIFIER              = 0xc29
 
 #####################################################
 # ERROR codes
@@ -180,6 +182,57 @@ def get_token_type_str(type):
     if type is T_SYMBOL:                return "SYMBOL" 
     if type is T_NEWLINE:               return "NEWLINE"
     if type is T_WHITESPACE:            return "WHITESPACE"           
+
+def get_node_type_to_str(type):
+    if type is N_TOKEN:                 return "TOKEN"    
+    if type is N_FUNCTION:              return "FUNCTION" 
+    if type is N_SECTION:               return "SECTION"  
+    if type is N_START:                 return "START"    
+    if type is N_END:                   return "END"      
+    if type is N_HIVE:                  return "HIVE"     
+    if type is N_VALUE:                 return "VALUE"    
+    if type is N_PARAM:                 return "PARAM"    
+
+def get_node_property_to_str(property):
+    if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
+    if property is HIVE_START:          return "HIVE_START"   
+    if property is HIVE_END:            return "HIVE_END"     
+    if property is INV:                 return "INV"          
+    if property is FLYOUT:              return "FLYOUT"       
+    if property is FLYTO:               return "FLYTO"        
+    if property is STING:               return "STING"        
+    if property is HONEY:               return "HONEY"        
+    if property is TAKE:                return "TAKE"         
+    if property is WAX:                 return "WAX"          
+    if property is FLOAT:               return "FLOAT"        
+    if property is INT:                 return "INT"          
+    if property is BOOL:                return "BOOL"         
+    if property is STRING:              return "STRING"       
+    if property is TOKEN:               return "TOKEN"        
+    if property is BUILTIN:             return "BUILTIN"      
+    if property is EXTERN:              return "EXTERN"       
+    if property is HONEYCOMB:           return "HONEYCOMB"    
+    if property is PYTHON:              return "PYTHON"       
+    if property is FUNCTIONPTR:         return "FUNCTIONPTR"  
+    if property is SRC:                 return "SRC"          
+    if property is MEADOW:              return "MEADOW"       
+    if property is END:                 return "END"          
+    if property is TRACE:               return "TRACE"        
+    if property is HIVE:                return "HIVE"         
+    if property is HONEYPOT:            return "HONEYPOT"     
+    if property is STICK:               return "STICK"
+    if property is LIST:                return "LIST"
+    if property is IDENTIFIER:          return "IDENTIFIER"      
+
+def get_node_property_by_value(str_value):
+    if str_value == "honeycomb":        return HONEYCOMB   
+    if str_value == "python":           return PYTHON      
+    if str_value == "functionptr":      return FUNCTIONPTR 
+    if str_value == "src":              return SRC         
+    if str_value == "meadow":           return MEADOW      
+    if str_value == "end":              return END         
+    if str_value == "trace":            return TRACE       
+    if str_value == "hive":             return HIVE        
 
 #####################################################
 # INTERPRETER stuff
