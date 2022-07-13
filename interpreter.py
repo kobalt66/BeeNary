@@ -88,6 +88,8 @@ class Lexer:
 
         while True:
             if self.eof: break
+            if not self.currChar in VALID_CHARS:
+                sys.error_system.create_error(INVALID_CHARACTER_EXCEPTION, LEXING, f"The character '{self.currChar}' is invalid!", self.ln)
             if self.currChar == ':':
                 self.tokens.append(token(T_COLON, ':', self.ln))
                 if self.advance(): break
