@@ -7,7 +7,7 @@ test_one:
 
 test_two:
     flyout "Hello World!"
-    inv a is 1 flyout "a is indeed 1"
+    inv a is b flyout "a is indeed 1"
 
     wax test true
 
@@ -21,13 +21,13 @@ test_two:
 
     take list 0
 
-:hive:
-    honeypot b
+:hive: 
+    honeypot b 
 :hive:
 
 start:
     a honey 1
-    b stick a
+    b stick a 
     b stick 2
     flyout "Hello World!"
 :end:
