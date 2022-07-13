@@ -1,0 +1,77 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "BeeNary",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#tokens"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#builtin-functions"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#identifiers"
+		},
+		{
+			"include": "#strings"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [{
+				"match": "#.*",
+				"name": "comment.line.number-sign.b"
+			}]
+		},
+		"tokens": {
+			"patterns": [{
+				"name": "entity.name.class",
+				"match": "(:)\\s*([\\w.*+!-]+)"
+			}]
+		},
+		"operators": {
+			"patterns": [{
+				"name": "constant.regexp",
+				"match": "\\b(is|in|not)\\b"
+			}]
+		},
+		"builtin-functions": {
+			"patterns": [{
+				"name": "entity.name.function",
+				"match": "\\b(inv|flyto|flyout|wax|sting|take)\\b"
+			}]
+		},
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.less",
+				"match": "\\b(true|false|honeypot|honey|stick)\\b"
+			}]
+		},
+		"identifiers": {
+			"patterns": [{
+				"match": "([\\w.*+!-]+)",
+            	"name": "constant.character.escape"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.b",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.b",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.b"
+}

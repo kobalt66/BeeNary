@@ -13,10 +13,10 @@ test_two:
 
     b honey a<1, 2, b, 1, "Hello World", hello_world, true>
     b honey "hello world"
-    flyout b
-
+    flyout b 
+    
     :trace:
-
+    
     sting b
 
     take list 0
