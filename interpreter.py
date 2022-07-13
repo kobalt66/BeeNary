@@ -398,7 +398,7 @@ class Parser:
 
             self.idx += 1
             list = self.expr(tokens)
-            if not list or not list.has_property(IDENTIFIER):
+            if not list or not list.has_property(IDENTIFIER) or list.has_property(BUILTIN):
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "A honeycomb can only be defined with an identifier.", keyword.ln)
 
             return node(N_FUNCTION, keyword.ln, properties, value = list) 
@@ -514,7 +514,7 @@ class Parser:
 
             self.idx += 1
             section = self.expr(tokens)
-            if not section or not section.has_property(IDENTIFIER):
+            if not section or not section.has_property(IDENTIFIER) or section.has_property(BUILTIN):
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected an identifier of a section.", flyto.ln)
 
             properties = [BUILTIN, FLYTO]
@@ -610,7 +610,7 @@ class Parser:
                     value = self.expr(tokens)
                     if not value:
                         sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The variable must have a value!", identifier.ln)
-                    elif not any(item in self.variable_value_types for item in value.properties):
+                    elif not any(item in self.variable_value_types for item in value.properties) or value.has_property(BUILTIN):
                         sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A variable cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
 
                     properties = [BUILTIN, HONEY, IDENTIFIER]
@@ -620,7 +620,7 @@ class Parser:
                     value = self.expr(tokens)
                     if not value:
                         sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Some value is requiered in order to push something to a list.", identifier.ln)
-                    elif not any(item in self.variable_value_types for item in value.properties):
+                    elif not any(item in self.variable_value_types for item in value.properties) or value.has_property(BUILTIN):
                         sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A list cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
 
                     properties = [BUILTIN, STICK, IDENTIFIER]
