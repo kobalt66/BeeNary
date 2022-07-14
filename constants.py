@@ -268,10 +268,6 @@ BOOLEAN = [
     "false"
 ]
 BUILTIN_FUNCTION = [
-    "div",
-    "add",
-    "mul",
-    "sub",
     "inv",
     "flyto",
     "flyout",

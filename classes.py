@@ -105,6 +105,7 @@ class system:
         self.nodes_show_properties = False
         self.nodes_show_child_properties = False
         self.nodes_show_parameters = False
+        self.show_sorted_nodes = False
 
         self.flags = {
             "-t"  : "-t\tToggle token printing.", 
@@ -114,7 +115,8 @@ class system:
             "-n"  : "-n\tToggle node printing.",
             "-np" : "-np\tToggle node property printing.",
             "-cp" : "-cp\tToggle property printing of a child node.",
-            "-pa" : "-pa\tToggle node parameter printing."
+            "-pa" : "-pa\tToggle node parameter printing.",
+            "-sn" : "-sn\tToggle sorted node printing"
         }
 
     def process_help_flag(self, argv2 = None):
@@ -153,6 +155,8 @@ class system:
             self.nodes_show_child_properties = True
         elif argv == "-pa":
             self.nodes_show_parameters = True
+        elif argv == "-sn":
+            self.show_sorted_nodes = True
 
         self.error_system.throw_errors()
         self.error_system.throw_warnings()

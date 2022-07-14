@@ -48,6 +48,14 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
             str = node.to_str(sys)
             if str: print(str)
         print("\n")
+    
+    if sys.show_sorted_nodes:
+        print("\n\nSORTED NODES:")
+        for node in sorted_nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
+    
 
 def get_code(path):
     global sys
@@ -663,9 +671,12 @@ class Sortout:
                 if not params or len(params) > 1:
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "The src token expects only one argument.", node.ln)
 
-                code = get_code(params[0].value, True)
+                code = get_code(params[0].value)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", node.ln)
+
+                script = sys.error_system.script
+                sys.error_system.script = params[0].value 
 
                 lexer = Lexer(code)
                 tokens = lexer.Phase1()
@@ -681,7 +692,9 @@ class Sortout:
                         sys.error_system.create_error(FALSE_LIB_USAGE_EXCEPTION, SORTOUT, "The script you are trying to use as a meadow does not fulfill all meadow-definition-standards.", node.ln)
 
                     updated_nodes.append(member)
+                    idx += 1
 
+                sys.error_system.script = script
             else:
                 updated_nodes.append(node) 
 
@@ -696,7 +709,7 @@ class Sortout:
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return updated_nodes
+        return nodes
 
     def Sortout_param_check(self, nodes):
         updated_nodes = []
@@ -704,7 +717,7 @@ class Sortout:
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return updated_nodes
+        return nodes
 
     def Sortout_inv(self, nodes):
         updated_nodes = []
@@ -712,7 +725,7 @@ class Sortout:
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return updated_nodes
+        return nodes
 
     def Sortout_unused(self, nodes):
         updated_nodes = []
@@ -720,7 +733,7 @@ class Sortout:
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return updated_nodes
+        return nodes
 
     def Sortout_loops(self, nodes):
         updated_nodes = []
@@ -728,7 +741,7 @@ class Sortout:
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return updated_nodes
+        return nodes
 
     def Phase2(self):
         return self.nodes
