@@ -9,6 +9,9 @@
 			"include": "#tokens"
 		},
 		{
+			"include": "#chars"
+		},
+		{
 			"include": "#operators"
 		},
 		{
@@ -22,6 +25,9 @@
 		},
 		{
 			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
 		}
 	],
 	"repository": {
@@ -34,12 +40,31 @@
 		"tokens": {
 			"patterns": [{
 				"name": "entity.name.class",
-				"match": "(:)\\s*([\\w.*+!-]+)"
+				"match": "\\b(?<=:)(src|end|trace|functionptr|python|honeycomb|hive|meadow)(?=[:.<])\\b"
+			}]
+		},
+		"chars": {
+			"patterns": [
+			{
+				"match": ":",
+				"name": "entity.name.class"
+			},
+			{
+				"match": "<",
+				"name": "entity.name.class"
+			},
+			{
+				"match": ">",
+				"name": "entity.name.class"
+			},
+			{
+				"match": ",",
+				"name": "entity.name.class"
 			}]
 		},
 		"operators": {
 			"patterns": [{
-				"name": "constant.regexp",
+				"name": "constant.language",
 				"match": "\\b(is|in|not)\\b"
 			}]
 		},
@@ -51,13 +76,13 @@
 		},
 		"keywords": {
 			"patterns": [{
-				"name": "keyword.control.less",
+				"name": "keyword.control",
 				"match": "\\b(true|false|honeypot|honey|stick)\\b"
 			}]
 		},
 		"identifiers": {
 			"patterns": [{
-				"match": "([\\w.*+!-]+)",
+				"match": "([a-zA-Z.ö.Ö.ä.Ä.ü.Ü._]+)",
             	"name": "constant.character.escape"
 			}]
 		},
@@ -65,12 +90,16 @@
 			"name": "string.quoted.double.b",
 			"begin": "\"",
 			"end": "\"",
-			"patterns": [
-				{
-					"name": "constant.character.escape.b",
-					"match": "\\\\."
-				}
-			]
+			"patterns": [{
+				"name": "constant.character.escape.b",
+				"match": "\\\\."
+			}]
+		},
+		"numbers": {
+			"patterns": [{
+				"match": "[0-9]+",
+				"name":"constant.numeric"
+			}]
 		}
 	},
 	"scopeName": "source.b"
