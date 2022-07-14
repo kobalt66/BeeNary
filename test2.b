@@ -9,7 +9,6 @@ wax test :python<"std.py">:
 
 wax obj :honeycomb<a, b, c>:
 
-
 start:
 :src<".lib/test.lib">:
 

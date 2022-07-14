@@ -98,6 +98,7 @@ MULTI_START_EXCEPTION                   = 0xd19
 WRONG_TOKEN_TYPE_EXCEPTION              = 0xd20
 TERMINAL_EXCEPTION                      = 0xd21
 SILENT_EXCEPTION                        = 0xd22
+TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
 
 #####################################################
 # WARNING codes
@@ -143,7 +144,8 @@ def get_exclamation_code_str(code):
     if code is MISSING_START_SECTION_EXCEPTION:         return "MISSING_START_SECTION_EXCEPTION"    
     if code is INVALID_CHARACTER_EXCEPTION:             return "INVALID_CHARACTER_EXCEPTION"        
     if code is EXPECTED_HIVE_SECTION_EXCEPTION:         return "EXPECTED_HIVE_SECTION_EXCEPTION"    
-    if code is MISSING_ARGUMENTS_EXCEPTION:             return "MISSING_ARGUMENTS_EXCEPTION"        
+    if code is MISSING_ARGUMENTS_EXCEPTION:             return "MISSING_ARGUMENTS_EXCEPTION"
+    if code is TOO_MANY_ARGUMENTS_EXCEPTION:            return "TOO_MANY_ARGUMENTS_EXCEPTION"        
     if code is INVALID_EXPRESSION_EXCEPTION:            return "INVALID_EXPRESSION_EXCEPTION"          
     if code is INVALID_PARAM_DECLARATION_EXCEPTION:     return "INVALID_PARAM_DECLARATION_EXCEPTION"
     if code is INVALID_MATH_OPPERATION:                 return "INVALID_MATH_OPPERATION"            

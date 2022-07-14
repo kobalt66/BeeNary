@@ -31,6 +31,10 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     parser = Parser(tokens_final)
     nodes = parser.Parse()
 
+    sortout = Sortout(nodes)
+    sorted_nodes = sortout.Phase1()
+    sorted_nodes = sortout.Phase2()
+
     if sys.show_tokens:
         print("\n\nTOKENS:")
         for token in tokens:
@@ -46,13 +50,16 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
         print("\n")
 
 def get_code(path):
+    global sys
     if path == "-help": return ""
 
-    file = io.open(path, "r")
-    code = file.read()
-    file.close()
-    return code
-
+    try:
+        file = io.open(path, "r")
+        code = file.read()
+        file.close()
+        return code
+    except:
+        print("An error occured while reading from a file.")
 
 ######################################################################################################
 
@@ -631,3 +638,97 @@ class Parser:
             return n
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
+
+
+class Sortout:
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+    def Phase1(self):
+        nodes = self.libraries(self.nodes)
+        nodes = self.Sortout_used(nodes)
+        nodes = self.Sortout_param_check(nodes)
+        nodes = self.Sortout_inv(nodes)
+        nodes = self.Sortout_unused(nodes)
+        nodes = self.Sortout_loops(nodes)
+        self.nodes = nodes
+        return self.nodes
+
+    def libraries(self, nodes):
+        updated_nodes = []
+
+        for node in nodes:
+            if node.has_property(SRC):
+                params = node.params
+                if not params or len(params) > 1:
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "The src token expects only one argument.", node.ln)
+
+                code = get_code(params[0].value, True)
+                if not code:
+                    sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", node.ln)
+
+                lexer = Lexer(code)
+                tokens = lexer.Phase1()
+                tokens = lexer.Phase2()
+                tokens_final = lexer.get_final_token_list(tokens)
+
+                parser = Parser(tokens_final)
+                meadow = parser.Parse()
+
+                idx = 0
+                for member in meadow:
+                    if idx == 0 and not member.typeof(N_TOKEN) and not member.has_property(MEADOW):
+                        sys.error_system.create_error(FALSE_LIB_USAGE_EXCEPTION, SORTOUT, "The script you are trying to use as a meadow does not fulfill all meadow-definition-standards.", node.ln)
+
+                    updated_nodes.append(member)
+
+            else:
+                updated_nodes.append(node) 
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Sortout_used(self, nodes):
+        updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Sortout_param_check(self, nodes):
+        updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Sortout_inv(self, nodes):
+        updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Sortout_unused(self, nodes):
+        updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Sortout_loops(self, nodes):
+        updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return updated_nodes
+
+    def Phase2(self):
+        return self.nodes
