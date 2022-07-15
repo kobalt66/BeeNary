@@ -37,6 +37,7 @@ N_END                   = 0xb05
 N_HIVE                  = 0xb06
 N_VALUE                 = 0xb07
 N_PARAM                 = 0xb08
+N_LIB                   = 0xb09
 
 #####################################################
 # NODE properties
@@ -193,7 +194,8 @@ def get_node_type_to_str(type):
     if type is N_END:                   return "END"      
     if type is N_HIVE:                  return "HIVE"     
     if type is N_VALUE:                 return "VALUE"    
-    if type is N_PARAM:                 return "PARAM"    
+    if type is N_PARAM:                 return "PARAM"
+    if type is N_LIB:                   return "LIB"    
 
 def get_node_property_to_str(property):
     if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
@@ -286,7 +288,8 @@ FATAL_ERRORS = [
     INVALID_MEMBER_VALUE_EXCEPTION,    
     MISSING_START_SECTION_EXCEPTION,        
     EXPECTED_HIVE_SECTION_EXCEPTION,    
-    MISSING_ARGUMENTS_EXCEPTION,        
+    MISSING_ARGUMENTS_EXCEPTION,
+    TOO_MANY_ARGUMENTS_EXCEPTION,        
     INVALID_EXPRESSION_EXCEPTION,       
     INVALID_PARAM_DECLARATION_EXCEPTION,
     INVALID_MATH_OPPERATION,            

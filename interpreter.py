@@ -628,8 +628,9 @@ class Parser:
                     elif not any(item in self.variable_value_types for item in value.properties) or value.has_property(BUILTIN):
                         sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A variable cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
 
+                    name = self.simple_identifier(identifier)
                     properties = [BUILTIN, HONEY, IDENTIFIER]
-                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+                    return node(N_FUNCTION, identifier.ln, properties, name, value)
                 elif following.typeof(T_KEYWORD) and following.has_value("stick"):
                     self.idx += 2
                     value = self.expr(tokens)
@@ -651,32 +652,54 @@ class Parser:
 class Sortout:
     def __init__(self, nodes):
         self.nodes = nodes
+        self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
+        self.tokens_with_parmas = [PYTHON, SRC]
+        self.used_var_names = {}
 
     def Phase1(self):
-        nodes = self.libraries(self.nodes)
+        nodes = self.Sortout_param_check(self.nodes)
+        nodes = self.libraries(nodes)
         nodes = self.Sortout_used(nodes)
-        nodes = self.Sortout_param_check(nodes)
         nodes = self.Sortout_inv(nodes)
         nodes = self.Sortout_unused(nodes)
         nodes = self.Sortout_loops(nodes)
+        nodes = self.Sortout_others(nodes)
         self.nodes = nodes
         return self.nodes
+
+    def Sortout_param_check(self, nodes):
+        for n in nodes:
+            if n.has_property(TOKEN):
+                if not n.params and n.has_property(HONEYCOMB):
+                    sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A honeycomb token has to have at least one argument.", n.ln)
+                elif n.params and n.has_property(HONEYCOMB):
+                    if not all(param.has_property(IDENTIFIER) for param in n.params):
+                        sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A honeycomb token can only have identifiers as arguments.", n.ln)
+                elif not n.params and any(p in self.tokens_with_parmas for p in n.properties):
+                    sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
+                elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
+                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(HONEYCOMB):
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return nodes
 
     def libraries(self, nodes):
         updated_nodes = []
 
-        for node in nodes:
-            if node.has_property(SRC):
-                params = node.params
-                if not params or len(params) > 1:
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "The src token expects only one argument.", node.ln)
-
-                code = get_code(params[0].value)
+        for n in nodes:
+            if n.has_property(SRC):
+                params = n.params
+                lib_path = params[0].value
+                code = get_code(lib_path)
                 if not code:
-                    sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", node.ln)
+                    sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
 
                 script = sys.error_system.script
-                sys.error_system.script = params[0].value 
+                sys.error_system.script = lib_path
 
                 lexer = Lexer(code)
                 tokens = lexer.Phase1()
@@ -689,14 +712,19 @@ class Sortout:
                 idx = 0
                 for member in meadow:
                     if idx == 0 and not member.typeof(N_TOKEN) and not member.has_property(MEADOW):
-                        sys.error_system.create_error(FALSE_LIB_USAGE_EXCEPTION, SORTOUT, "The script you are trying to use as a meadow does not fulfill all meadow-definition-standards.", node.ln)
-
-                    updated_nodes.append(member)
+                        sys.error_system.create_error(FALSE_LIB_USAGE_EXCEPTION, SORTOUT, "The script you are trying to use as a meadow does not fulfill all meadow-definition-standards.", member.ln)
+                    elif not any(p in self.valid_meadow_properties for p in member.properties):
+                        sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A meadow member cannot have the following property-constellation [" + ' '.join(get_node_property_to_str(p) for p in member.properties) + "]", member.ln)
+                    
                     idx += 1
-
+                
                 sys.error_system.script = script
+                properties = [MEADOW]
+                path = parser.string(lib_path, n.ln)
+                lib = node(N_LIB, n.ln, properties, meadow, path) 
+                updated_nodes.append(lib)
             else:
-                updated_nodes.append(node) 
+                updated_nodes.append(n) 
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -704,16 +732,18 @@ class Sortout:
         return updated_nodes
 
     def Sortout_used(self, nodes):
-        updated_nodes = []
-
-        sys.error_system.throw_errors()
-        sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
-        return nodes
-
-    def Sortout_param_check(self, nodes):
-        updated_nodes = []
-
+        for n in nodes:
+            if n.has_property(HONEY):
+                if not n.child.ptr in self.used_var_names.keys():
+                    self.used_var_names[n.child.ptr] = "variable"
+                elif self.used_var_names[n.child.ptr] == "list":
+                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.child.ptr}' is already used by a list.", n.ln)
+            elif n.has_property(LIST):
+                if not n.value.ptr in self.used_var_names:
+                    self.used_var_names[n.value.ptr] = "list"
+                else:
+                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.value.ptr}' is already used by some other variable!", n.ln)
+            
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
@@ -737,6 +767,17 @@ class Sortout:
 
     def Sortout_loops(self, nodes):
         updated_nodes = []
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return nodes
+
+    def Sortout_others(self, nodes):
+        updated_nodes = []
+
+        # if start exists
+        # ...
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()

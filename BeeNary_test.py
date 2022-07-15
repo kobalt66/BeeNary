@@ -7,7 +7,7 @@ gettrace = getattr(s, 'gettrace', None)
 if gettrace: 
     if gettrace():
         code = BeeNary.get_code("test.b")
-        BeeNary.run(code, "test.b", "-n", "-t", "-np", "-sw", "-pa", "", "", "", "")
+        BeeNary.run(code, "test.b", "-n", "-t", "-ns", "-sw", "-pa", "-np", "", "", "")
         exit(0)
 
 sys = system()
