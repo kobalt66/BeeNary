@@ -331,7 +331,7 @@ class Lexer:
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.expression_types       = [T_IDENTIFIER, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.expression_types       = [T_IDENTIFIER, T_STRING, T_BOOL, T_INT, T_FLOAT, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
@@ -849,6 +849,8 @@ class Sortout:
                 sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "A honeypot can only be defined inside a hive section.", n.ln)
             if not n.has_property(HONEYPOT) and not n.has_property(HIVE) and hive_start and not hive_end:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot be inside a hive section.", n.ln)
+            if n.typeof(N_VALUE):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be single values somewhere in the script.", n.ln)
 
         if not start_section:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
