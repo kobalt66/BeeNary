@@ -72,6 +72,7 @@ HONEYPOT                = 0xc26
 STICK                   = 0xc27
 LIST                    = 0xc28
 IDENTIFIER              = 0xc29
+SECTION                 = 0xc30
 
 #####################################################
 # ERROR codes
@@ -91,7 +92,7 @@ EXPECTED_HIVE_SECTION_EXCEPTION         = 0xd11
 MISSING_ARGUMENTS_EXCEPTION             = 0xd12
 INVALID_EXPRESSION_EXCEPTION            = 0xd13
 INVALID_PARAM_DECLARATION_EXCEPTION     = 0xd14
-INVALID_MATH_OPPERATION                 = 0xd15
+INVALID_MATH_OPERATION                  = 0xd15
 INVALID_LIST_USAGE_EXCEPTION            = 0xd16
 INVALID_NUMBER_EXCEPTION                = 0xd17
 MULTI_HIVE_EXCEPTION                    = 0xd18
@@ -100,6 +101,7 @@ WRONG_TOKEN_TYPE_EXCEPTION              = 0xd20
 TERMINAL_EXCEPTION                      = 0xd21
 SILENT_EXCEPTION                        = 0xd22
 TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
+INVALID_OPERATION_EXCEPTION             = 0xd24
 
 #####################################################
 # WARNING codes
@@ -109,6 +111,7 @@ STUNG_INVINCIBLE_MEMBER                 = 0xe01
 UNUSED_VARIABLE                         = 0xe02
 MEMBER_NAME_COLLISION                   = 0xe03
 INFINITE_LOOP                           = 0xe04
+USELESS_INV_EXPRESSION                  = 0xe05
 
 #####################################################
 # WARNING codes
@@ -120,6 +123,7 @@ PARSING                 = 0xf03
 SORTOUT                 = 0xf04
 INTERPRETING            = 0xf05
 TERMINAL                = 0xf06
+STACK                   = 0xf07
 
 #####################################################
 # TO STRING functions
@@ -132,6 +136,7 @@ def get_exclamation_type_str(type):
     if type is SORTOUT:      return "SORTOUT"
     if type is INTERPRETING: return "INTERPRETER"
     if type is TERMINAL:     return "TERMINAL"
+    if type is STACK:        return "STACK"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -149,7 +154,7 @@ def get_exclamation_code_str(code):
     if code is TOO_MANY_ARGUMENTS_EXCEPTION:            return "TOO_MANY_ARGUMENTS_EXCEPTION"        
     if code is INVALID_EXPRESSION_EXCEPTION:            return "INVALID_EXPRESSION_EXCEPTION"          
     if code is INVALID_PARAM_DECLARATION_EXCEPTION:     return "INVALID_PARAM_DECLARATION_EXCEPTION"
-    if code is INVALID_MATH_OPPERATION:                 return "INVALID_MATH_OPPERATION"            
+    if code is INVALID_MATH_OPERATION:                  return "INVALID_MATH_OPERATION"            
     if code is INVALID_LIST_USAGE_EXCEPTION:            return "INVALID_LIST_USAGE_EXCEPTION"          
     if code is MULTI_HIVE_EXCEPTION:                    return "MULTI_HIVE_EXCEPTION"                  
     if code is MULTI_START_EXCEPTION:                   return "MULTI_START_EXCEPTION"
@@ -161,6 +166,8 @@ def get_exclamation_code_str(code):
     if code is WRONG_TOKEN_TYPE_EXCEPTION:              return "WRONG_TOKEN_TYPE_EXCEPTION"
     if code is TERMINAL_EXCEPTION:                      return "TERMINAL_EXCEPTION"
     if code is SILENT_EXCEPTION:                        return "SILENT_EXCEPTION"
+    if code is USELESS_INV_EXPRESSION:                  return "USELESS_INV_EXPRESSION"
+    if code is INVALID_OPERATION_EXCEPTION:            return "INVALID_OPERATION_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -226,7 +233,8 @@ def get_node_property_to_str(property):
     if property is HONEYPOT:            return "HONEYPOT"     
     if property is STICK:               return "STICK"
     if property is LIST:                return "LIST"
-    if property is IDENTIFIER:          return "IDENTIFIER"      
+    if property is IDENTIFIER:          return "IDENTIFIER"   
+    if property is SECTION:             return "SECTION"   
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -292,12 +300,13 @@ FATAL_ERRORS = [
     TOO_MANY_ARGUMENTS_EXCEPTION,        
     INVALID_EXPRESSION_EXCEPTION,       
     INVALID_PARAM_DECLARATION_EXCEPTION,
-    INVALID_MATH_OPPERATION,            
+    INVALID_MATH_OPERATION,            
     INVALID_LIST_USAGE_EXCEPTION,       
     INVALID_NUMBER_EXCEPTION,
     INVALID_CHARACTER_EXCEPTION,           
     MULTI_HIVE_EXCEPTION,               
     MULTI_START_EXCEPTION,              
     WRONG_TOKEN_TYPE_EXCEPTION,
-    TERMINAL_EXCEPTION   
+    TERMINAL_EXCEPTION,
+    INVALID_OPERATION_EXCEPTION   
 ]

@@ -56,6 +56,13 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
             if str: print(str)
         print("\n")
     
+    if sys.show_stack_objects:
+        print("\n\nVIRTUAL STACK:")
+        for ptr in sys.virtual_stack.stack:
+            str = sys.virtual_stack.stack[ptr].to_str(sys)
+            if str: print(str)
+        print("\n")
+    
 
 def get_code(path):
     global sys
@@ -397,9 +404,9 @@ class Parser:
 
     def section(self, tokens):
         section = tokens[self.idx]
-        properties = []
+        properties = [SECTION]
         type = N_START if section.typeof(T_START) else N_SECTION
-        value = self.string(section.str_value, section.ln)
+        value = self.simple_identifier(section)
         return node(type, section.ln, properties, value=value)
 
     def keyword(self, tokens):
@@ -654,6 +661,8 @@ class Sortout:
         self.nodes = nodes
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.tokens_with_parmas = [PYTHON, SRC]
+        self.constant_values = [INT, FLOAT, STRING, BOOL]
+        self.stack_objects = [SECTION, WAX]
         self.used_var_names = {}
 
     def Phase1(self):
@@ -752,10 +761,37 @@ class Sortout:
     def Sortout_inv(self, nodes):
         updated_nodes = []
 
+        for n in nodes:
+            if n.has_property(INV):
+                left = n.child[0]
+                right = n.child[1]
+
+                is_op = False
+                if (n.operator_count("not") % 2) == 0:
+                    is_op = True
+
+                if n.operator_count("is") > 1:
+                    sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot have more than one 'is' operator.", n.ln)
+                elif n.operator_count("in") > 1:
+                    sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot have more than one 'in' operator.", n.ln)
+                elif n.has_operator("is") and n.has_operator("in"):
+                    sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot have the operator combination [is in].", n.ln)
+                elif n.has_operator("not") and not n.has_operator("is") and not n.has_operator("in"):
+                    sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot only have 'not' operators.", n.ln)
+
+                if any(p in self.constant_values for p in left.properties) and any(p in self.constant_values for p in right.properties):
+                    if not left.value == right.value and is_op or left.value == right.value and not is_op:
+                        sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement will never be true.", n.ln)
+                        continue
+                    else:
+                        sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement are constant values and will never change the outcome of the statement.", n.ln)
+
+            updated_nodes.append(n)
+
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
-        return nodes
+        return updated_nodes
 
     def Sortout_unused(self, nodes):
         updated_nodes = []
@@ -766,7 +802,24 @@ class Sortout:
         return nodes
 
     def Sortout_loops(self, nodes):
-        updated_nodes = []
+        section = False
+        section_name = ''
+        for n in nodes:
+            if n.typeof(N_SECTION):
+                section = True
+                section_name = n.value.value
+                continue
+            if section:
+                if n.has_property(INV):
+                    if n.value.has_property(FLYTO):
+                        if n.value.value.ptr == section_name:
+                            sys.error_system.create_warning(INFINITE_LOOP, SORTOUT, f"There is a good chance of an infinite loop at the section called '{section_name}'", n.ln)
+                            section = False
+
+                if n.has_property(FLYTO):
+                    if n.value.ptr == section_name:
+                        sys.error_system.create_warning(INFINITE_LOOP, SORTOUT, f"There is a good chance of an infinite loop at the section called '{section_name}'", n.ln)
+                        section = False
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -774,10 +827,34 @@ class Sortout:
         return nodes
 
     def Sortout_others(self, nodes):
-        updated_nodes = []
+        start_section = False
+        hive_start = False
+        hive_end = False
+        for n in nodes:
+            if n.typeof(N_START):
+                if start_section:
+                    sys.error_system.create_error(MULTI_START_EXCEPTION, SORTOUT, "There can only be one start section.", n.ln)
+                start_section = True
+            if n.typeof(N_HIVE):
+                if not hive_start:
+                    hive_start = True
+                elif hive_start:
+                    if hive_end:
+                        sys.error_system.create_error(MULTI_HIVE_EXCEPTION, SORTOUT, "There can only be one hive section, defined by two hive tokens.", n.ln)
+                    else:
+                        hive_end = True
+                elif hive_end:
+                    sys.error_system.create_error(MULTI_HIVE_EXCEPTION, SORTOUT, "There can only be one hive section, defined by two hive tokens.", n.ln)
+            if n.has_property(HONEYPOT) and not hive_start:
+                sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "A honeypot can only be defined inside a hive section.", n.ln)
+            if not n.has_property(HONEYPOT) and not n.has_property(HIVE) and hive_start and not hive_end:
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot be inside a hive section.", n.ln)
 
-        # if start exists
-        # ...
+        if not start_section:
+            sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
+        if hive_start and not hive_end:
+            sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
+
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -785,4 +862,15 @@ class Sortout:
         return nodes
 
     def Phase2(self):
+        idx = 0
+        for n in self.nodes:
+            n.idx = idx
+            if any(p in self.stack_objects for p in n.properties):
+                sys.virtual_stack.init_var(n)
+
+            idx += 1
+            
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
         return self.nodes
