@@ -914,7 +914,7 @@ class Sortout:
         elif currNode.has_property(EXTERN):
             self.Phase3_extern(currNode)
         elif currNode.has_property(STING):
-            print("ADD STING FUNCTION")
+            self.Phase3_sting(currNode)
         elif currNode.has_property(HONEYPOT):
             self.Phase3_list(currNode)
         elif currNode.has_property(IDENTIFIER):
@@ -1054,6 +1054,15 @@ class Sortout:
         else:
             self.unused_variables.append(tuple)
 
+    def Phase3_sting(self, currNode):
+        defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
+        self.Phase3_expr(currNode.value)
+
+        if defined and var[1] == "member":
+            sys.error_system.create_warning(STUNG_INVINCIBLE_MEMBER, SORTOUT, "A meadow member is constant. Thus it cannot be destroyed.", currNode.ln)
+        elif defined and not var[1] == "member":
+            self.Phase3_del_defined(currNode.value.ptr)
+
     def Phase3_extern(self, currNode):
         self.Phase3_identifier(currNode)
         if currNode.params:
@@ -1089,3 +1098,11 @@ class Sortout:
                 var = item
 
         return defined, var 
+    
+    def Phase3_del_defined(self, var_ptr):
+        updated_list = []
+        for item in self.unused_variables:
+            if not item[0] == var_ptr:
+                updated_list.append(item)
+        
+        self.unused_variables = updated_list
