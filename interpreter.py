@@ -189,7 +189,7 @@ class Lexer:
     def number(self):
         global sys
         str_value = self.currChar
-        condition = lambda: True if self.currChar in NUMBER_CHARS else False
+        condition = lambda: True if self.currChar in NUMBER_CHARS + '.' else False
         dot_count = 0
 
         while self.advance_condition(condition):
@@ -336,7 +336,7 @@ class Parser:
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
-        self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL]
+        self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL, TAKE]
         self.inv_condition_types    = [N_VALUE]
         self.valid_operators        = ["is", "not", "in"]
         self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
@@ -355,6 +355,8 @@ class Parser:
                 self.node_list.append(self.section(self.tokens))
             elif currToken.type in self.token_types:
                 self.node_list.append(self.token(self.tokens))
+            elif not currToken.str_value in " \\n\\t\\r":
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The token '{currToken.str_value}' is invalid at it's current position.", currToken.ln)
 
             self.idx += 1
 
@@ -633,7 +635,7 @@ class Parser:
                     value = self.expr(tokens)
                     if not value:
                         sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "The variable must have a value!", identifier.ln)
-                    elif not any(item in self.variable_value_types for item in value.properties) or value.has_property(BUILTIN):
+                    elif not any(item in self.variable_value_types for item in value.properties):
                         sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A variable cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
 
                     name = self.simple_identifier(identifier)
@@ -659,23 +661,26 @@ class Parser:
 
 
 class Sortout:
-    def __init__(self, nodes):
+    def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None):
         self.nodes = nodes
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.tokens_with_parmas = [PYTHON, SRC]
+        self.tokens_only_string_args = [PYTHON, SRC, END]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
         self.stack_objects = [SECTION, WAX]
-        self.builtin_functions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK]
+        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
         
-        self.used_var_names = {}
-        self.unused_variables = []
+        self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
+        self.used_sections = ["start"]
+        self.unused_variables = [] if not preset_unused_vars else preset_unused_vars
         self.currSection = ""
         self.idx = 0
+        self.end = False
+        self.library = library
 
     def Phase1(self):
         nodes = self.Sortout_param_check(self.nodes)
         nodes = self.libraries(nodes)
-        nodes = self.Sortout_used_lists(nodes)
         nodes = self.Sortout_inv(nodes)
         nodes = self.Sortout_loops(nodes)
         nodes = self.Sortout_others(nodes)
@@ -685,21 +690,18 @@ class Sortout:
     def Sortout_param_check(self, nodes):
         for n in nodes:
             if n.has_property(TOKEN):
-                if not n.params and n.has_property(HONEYCOMB):
-                    sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A honeycomb token has to have at least one argument.", n.ln)
-                elif n.params and n.has_property(HONEYCOMB):
-                    if not all(param.has_property(IDENTIFIER) for param in n.params):
-                        sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A honeycomb token can only have identifiers as arguments.", n.ln)
+                if n.params and len(n.params) > 1 and n.has_property(END):
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT,  "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
                 elif not n.params and any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
                 elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(HONEYCOMB):
+                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return nodes
 
     def libraries(self, nodes):
@@ -744,24 +746,8 @@ class Sortout:
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return updated_nodes
-
-    def Sortout_used_lists(self, nodes):
-        for n in nodes:
-            if n.has_property(HONEY):
-                if n.child.ptr in self.used_var_names.keys() and self.used_var_names[n.child.ptr] == "list":
-                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.child.ptr}' is already used by a list.", n.ln)
-            if n.has_property(LIST):
-                if not n.value.ptr in self.used_var_names:
-                    self.used_var_names[n.value.ptr] = "list"
-                else:
-                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.value.ptr}' is already used by some other list!", n.ln)
-            
-        sys.error_system.throw_errors()
-        sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
-        return nodes
 
     def Sortout_inv(self, nodes):
         updated_nodes = []
@@ -787,15 +773,17 @@ class Sortout:
                 if any(p in self.constant_values for p in left.properties) and any(p in self.constant_values for p in right.properties):
                     if not left.value == right.value and is_op or left.value == right.value and not is_op:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement will never be true.", n.ln)
+                        n.add_property(ALWAYS_FALSE)
                         continue
                     else:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement are constant values and will never change the outcome of the statement.", n.ln)
+                        n.add_property(ALWAYS_TRUE)
 
             updated_nodes.append(n)
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return updated_nodes
 
     def Sortout_loops(self, nodes):
@@ -820,7 +808,7 @@ class Sortout:
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return nodes
 
     def Sortout_others(self, nodes):
@@ -849,7 +837,7 @@ class Sortout:
             if n.typeof(N_VALUE):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be single values somewhere in the script.", n.ln)
 
-        if not start_section:
+        if not start_section and not self.library:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
         if hive_start and not hive_end:
             sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
@@ -857,7 +845,7 @@ class Sortout:
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return nodes
 
     def Phase2(self):
@@ -871,44 +859,61 @@ class Sortout:
             
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.nodes
 
     def Phase3(self):
         start = sys.virtual_stack.get_var_by_ptr("start")
         skipped_vars = []
-        self.unused_variables = [(list[0], list[1], False) if list[1] == "list" else skipped_vars.append(list) for list in self.used_var_names.items()]
+        self.unused_variables.extend([(list[0], list[1], False) if list[1] == "list" else skipped_vars.append(list) for list in self.used_var_names.items()])
         self.currSection = "start"
         self.idx = start.idx
 
         while self.idx < len(self.nodes):
             currNode = self.nodes[self.idx]
 
-            if any(p in self.builtin_functions for p in currNode.properties):
+            if any(p in self.valid_expressions for p in currNode.properties):
                 self.Phase3_expr(currNode)
+            elif currNode.typeof(N_LIB):
+                self.Phase3_lib(currNode)
 
+            if self.end: break
             self.idx += 1
 
         for item in skipped_vars:
             sys.error_system.create_silent(SORTOUT, f"The variable '{item[0]} [{item[1]}]' was skipped durring Phase3 of the Sortout.")
         for item in self.unused_variables:
-            if not item[2]:
+            if not item[1] == "member" and not item[2] and not self.libraries:
                 sys.error_system.create_warning(UNUSED_VARIABLE, SORTOUT, f"The variable '{item[0]} [{item[1]}]' is never used in the program.")
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
         return self.nodes    
         
-    def Phase3_expr(self, currNode):
+    def Phase3_expr(self, currNode, execute_jumps = True):
         if currNode.has_property(INV):
             self.Phase3_inv(currNode)
         elif currNode.has_property(FLYOUT):
             self.Phase3_flyout(currNode)
+        elif currNode.has_property(FLYTO) and execute_jumps:
+            self.Phase3_flyto(currNode)
         elif currNode.has_property(HONEY):
             self.Phase3_honey(currNode)
         elif currNode.has_property(STICK):
             self.Phase3_stick(currNode)
+        elif currNode.has_property(TAKE):
+            self.Phase3_take(currNode)
+        elif currNode.has_property(WAX):
+            self.Phase3_wax(currNode)
+        elif currNode.has_property(TOKEN):
+            self.end = self.Phase3_token(currNode)
+        elif currNode.has_property(EXTERN):
+            self.Phase3_extern(currNode)
+        elif currNode.has_property(STING):
+            print("ADD STING FUNCTION")
+        elif currNode.has_property(HONEYPOT):
+            self.Phase3_list(currNode)
         elif currNode.has_property(IDENTIFIER):
             self.Phase3_identifier(currNode)
 
@@ -917,24 +922,47 @@ class Sortout:
         right = currNode.child[1]
         expr = currNode.value
 
+        if not currNode.has_operator("in"):
+            defined_left, var_left = False, None
+            defined_right, var_right = False, None
+
+            if left.has_property(IDENTIFIER): defined_left, var_left = self.Phase3_is_defined(left.ptr, currNode.ln)
+            if right.has_property(IDENTIFIER): defined_right, var_right = self.Phase3_is_defined(right.ptr, currNode.ln)
+
+            if defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list"):
+                sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "If a component of a condition is an identifier of a list, it can only be compared to another list.", currNode.ln)
+        elif currNode.has_operator("in") and right.has_property(IDENTIFIER):
+            defined, var = self.Phase3_is_defined(right.ptr, currNode.ln)
+            if defined and not var[1] == "list":
+                sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "The provided identifier has to be one from a list.", currNode.ln)
+
         self.Phase3_expr(left)
-        self.Phase3_expr(right)        
-        self.Phase3_expr(expr)
+        self.Phase3_expr(right)
+        self.Phase3_expr(expr, True if currNode.has_property(ALWAYS_TRUE) else False)
 
     def Phase3_flyout(self, currNode):
         value = currNode.value
-        if value.has_property(IDENTIFIER):
-            self.Phase3_identifier(value)
+        self.Phase3_expr(value)
+
+    def Phase3_take(self, currNode):
+        list = currNode.child
+
+        defined, var = self.Phase3_is_defined(list.ptr, currNode.ln)
+        if defined and not var[1] == "list":
+            sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "The provided identifier has to be one from a list.", currNode.ln)
+
+        self.Phase3_expr(list)
 
     def Phase3_honey(self, currNode):
         value = currNode.value
         tuple = (currNode.child.ptr, "variable", False)
-        defined = self.Phase3_is_defined(currNode.child.ptr)
-
-        if not defined:
-            self.unused_variables.append(tuple)
+        defined, var = self.Phase3_is_defined(currNode.child.ptr, currNode.ln, True)
 
         self.Phase3_expr(value)
+        if defined and var[1] == "list":
+            sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{currNode.child.ptr}' is already taken by another object.", currNode.ln)
+        else:
+            self.unused_variables.append(tuple)
 
     def Phase3_stick(self, currNode):
         self.Phase3_expr(currNode.child)
@@ -961,16 +989,100 @@ class Sortout:
 
         self.unused_variables = updated_unused_variables
 
-    def Phase3_is_defined(self, var_ptr):
+    def Phase3_wax(self, currNode):
+        tuple = (currNode.child.ptr, "member", False)
+        defined, var = self.Phase3_is_defined(currNode.child.ptr, currNode.ln, True)
+
+        if defined:
+            sys.error_system.create_error(MEMBER_NAME_COLLISION, SORTOUT, f"The name '{currNode.child.ptr}' seems to be already taken by another variable. Change the variable name or the meadow member name.", currNode.ln)
+        elif not defined:
+            self.unused_variables.append(tuple)
+
+        self.Phase3_expr(currNode.value)
+
+    def Phase3_token(self, currNode):
+        if not currNode.params and currNode.has_property(HONEYCOMB):
+            sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A honeycomb token has to have at least one argument.", currNode.ln)
+        elif not currNode.params and any(p in self.tokens_with_parmas for p in currNode.properties):
+            sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] has to have one argument.", currNode.ln)
+        elif currNode.params and len(currNode.params) > 1 and any(p in self.tokens_with_parmas for p in currNode.properties):
+            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] can only have one argument.", currNode.ln)
+
+        if currNode.params:
+            self.Phase3_params(currNode)
+
+        if currNode.typeof(N_END):
+            return True
+
+        return False
+
+    def Phase3_lib(self, currNode):
+        if not currNode.has_property(LOADED):
+            script = sys.error_system.script
+            sys.error_system.script = currNode.value.value
+            self.nodes[self.idx].add_property(LOADED)
+            sortout = Sortout(currNode.child, True, self.unused_variables)
+            sortout.Phase1()
+            sortout.Phase2()
+            sortout.Phase3()
+            self.unused_variables = sortout.unused_variables
+            sys.error_system.script = script
+
+    def Phase3_flyto(self, currNode):
+        section_ptr = currNode.value.ptr
+        if not section_ptr in sys.virtual_stack.stack.keys():
+            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not defined")
+
+        section = sys.virtual_stack.get_var_by_ptr(section_ptr)
+
+        if not section_ptr in self.used_sections:
+            self.used_sections.append(section_ptr)
+            self.currSection = section_ptr
+            self.idx = section.idx
+        else:
+            sys.error_system.create_silent(SORTOUT, "There might the chance of an infinite loop...", currNode.ln)
+
+    def Phase3_list(self, currNode):
+        tuple = (currNode.value.ptr, "list", False)
+        defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln, True)
+
+        if defined:
+            sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{currNode.value.ptr}' is already taken by another object.", currNode.ln)
+        else:
+            self.unused_variables.append(tuple)
+
+    def Phase3_extern(self, currNode):
+        self.Phase3_identifier(currNode)
+        if currNode.params:
+            self.Phase3_params(currNode)
+
+    def Phase3_params(self, currNode):
+        for param in currNode.params:
+            if any (p in self.tokens_only_string_args for p in currNode.properties):
+                if not currNode.params[0].has_property(STRING):
+                    sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] can only have one string message argument.", currNode.ln)
+            elif currNode.has_property(HONEYCOMB):
+                if not param.has_property(IDENTIFIER):
+                    sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A honeycomb token can only have identifiers as arguments.", currNode.ln)
+            elif currNode.params and len(currNode.params) > 1 and any(p in self.tokens_with_parmas for p in currNode.properties):
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] can only have one argument.", currNode.ln)
+
+            if not currNode.has_property(HONEYCOMB):
+                self.Phase3_expr(param)
+
+    def Phase3_is_defined(self, var_ptr, ln, define_var = False):
         defined = False
+        var = None
         for item in self.unused_variables:
             ptr = item[0]
             type = item[1]
             used = item[2]
 
             if ptr == var_ptr:
+                if define_var and type == "member":
+                    sys.error_system.create_error(MEMBER_NAME_COLLISION, SORTOUT, f"The name '{var_ptr}' seems to be already taken by a meadow member.", ln)
+
                 defined = True
+                var = item
 
-        return defined
-
-        
+        return defined, var 

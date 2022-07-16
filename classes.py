@@ -43,7 +43,7 @@ class node:
         self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
         self.idx = 0
-
+        
     def get_param_to_str(self, param):
         if param.has_property(IDENTIFIER):
             return param.ptr

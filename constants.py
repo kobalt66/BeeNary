@@ -73,6 +73,9 @@ STICK                   = 0xc27
 LIST                    = 0xc28
 IDENTIFIER              = 0xc29
 SECTION                 = 0xc30
+LOADED                  = 0xc31
+ALWAYS_TRUE             = 0xc32
+ALWAYS_FALSE            = 0xc33
 
 #####################################################
 # ERROR codes
@@ -102,6 +105,8 @@ TERMINAL_EXCEPTION                      = 0xd21
 SILENT_EXCEPTION                        = 0xd22
 TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
 INVALID_OPERATION_EXCEPTION             = 0xd24
+INVALID_TYPE_EXCEPTION                  = 0xd25
+INVALID_SECTION_EXCEPTION               = 0xd26
 
 #####################################################
 # WARNING codes
@@ -167,7 +172,9 @@ def get_exclamation_code_str(code):
     if code is TERMINAL_EXCEPTION:                      return "TERMINAL_EXCEPTION"
     if code is SILENT_EXCEPTION:                        return "SILENT_EXCEPTION"
     if code is USELESS_INV_EXPRESSION:                  return "USELESS_INV_EXPRESSION"
-    if code is INVALID_OPERATION_EXCEPTION:            return "INVALID_OPERATION_EXCEPTION"
+    if code is INVALID_OPERATION_EXCEPTION:             return "INVALID_OPERATION_EXCEPTION"
+    if code is INVALID_TYPE_EXCEPTION:                  return "INVALID_TYPE_EXCEPTION"
+    if code is INVALID_SECTION_EXCEPTION:               return "INVALID_SECTION_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -234,7 +241,10 @@ def get_node_property_to_str(property):
     if property is STICK:               return "STICK"
     if property is LIST:                return "LIST"
     if property is IDENTIFIER:          return "IDENTIFIER"   
-    if property is SECTION:             return "SECTION"   
+    if property is SECTION:             return "SECTION"
+    if property is LOADED:              return "LOADED"        
+    if property is ALWAYS_TRUE:         return "ALWAYS_TRUE"  
+    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE"      
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -250,8 +260,8 @@ def get_node_property_by_value(str_value):
 # INTERPRETER stuff
 #####################################################
 
-IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_'
-NUMBER_CHARS = '0123456789.'
+IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
+NUMBER_CHARS = '0123456789'
 VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#\" '
 KEYWORDS = [
     "true",
@@ -308,5 +318,7 @@ FATAL_ERRORS = [
     MULTI_START_EXCEPTION,              
     WRONG_TOKEN_TYPE_EXCEPTION,
     TERMINAL_EXCEPTION,
-    INVALID_OPERATION_EXCEPTION   
+    INVALID_OPERATION_EXCEPTION,
+    INVALID_TYPE_EXCEPTION,
+    INVALID_SECTION_EXCEPTION
 ]
