@@ -12,8 +12,6 @@ start:
     flyto loop
 
 init_e:
-    wax e :python<"asdf">:
-
     #inv b is b flyout "a is c"
     #inv 1 in b inv 2 in b flyout "asfasdf"
 
@@ -24,12 +22,8 @@ init_e:
     # inv 1 is 1              flyout "true forever"
 loop:
     flyto init_e
-    e<a, pi>
     :src<"./libs/vars.b">:
     flyout pie
-
-    :src<"./libs/test2.b">:
-    test_ honey obj<1, 2, "Test">
 
     flyto start
     flyto loop

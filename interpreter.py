@@ -892,6 +892,9 @@ class Sortout:
         return self.nodes    
         
     def Phase3_expr(self, currNode, execute_jumps = True):
+        if any(p in self.valid_meadow_properties for p in currNode.properties) and not self.library:
+            sys.error_system.create_error(FALSE_LIB_FUNCTION_USAGE_EXCEPTION, SORTOUT, "You cannot use library specific code inside a regular script.", currNode.ln)
+
         if currNode.has_property(INV):
             self.Phase3_inv(currNode)
         elif currNode.has_property(FLYOUT):
