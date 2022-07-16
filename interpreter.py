@@ -34,6 +34,7 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     sortout = Sortout(nodes)
     sorted_nodes = sortout.Phase1()
     sorted_nodes = sortout.Phase2()
+    sorted_nodes = sortout.Phase3()
 
     if sys.show_tokens:
         print("\n\nTOKENS:")
@@ -646,8 +647,9 @@ class Parser:
                     elif not any(item in self.variable_value_types for item in value.properties) or value.has_property(BUILTIN):
                         sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, PARSING, f"A list cannot hold a value of type '{get_node_type_to_str(value.type)}' with properties like [" + ' '.join(get_node_property_to_str(p) for p in value.properties) + "]", identifier.ln)
 
+                    name = self.simple_identifier(identifier)
                     properties = [BUILTIN, STICK, IDENTIFIER]
-                    return node(N_FUNCTION, identifier.ln, properties, value = value)
+                    return node(N_FUNCTION, identifier.ln, properties, name, value)
 
             n = node(N_VALUE, identifier.ln, [IDENTIFIER])
             n.set_ptr(identifier.str_value)
@@ -663,14 +665,18 @@ class Sortout:
         self.tokens_with_parmas = [PYTHON, SRC]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
         self.stack_objects = [SECTION, WAX]
+        self.builtin_functions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK]
+        
         self.used_var_names = {}
+        self.unused_variables = []
+        self.currSection = ""
+        self.idx = 0
 
     def Phase1(self):
         nodes = self.Sortout_param_check(self.nodes)
         nodes = self.libraries(nodes)
-        nodes = self.Sortout_used(nodes)
+        nodes = self.Sortout_used_lists(nodes)
         nodes = self.Sortout_inv(nodes)
-        nodes = self.Sortout_unused(nodes)
         nodes = self.Sortout_loops(nodes)
         nodes = self.Sortout_others(nodes)
         self.nodes = nodes
@@ -706,6 +712,7 @@ class Sortout:
                 code = get_code(lib_path)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
+                    break
 
                 script = sys.error_system.script
                 sys.error_system.script = lib_path
@@ -740,18 +747,16 @@ class Sortout:
         sys.error_system.throw_silent()
         return updated_nodes
 
-    def Sortout_used(self, nodes):
+    def Sortout_used_lists(self, nodes):
         for n in nodes:
             if n.has_property(HONEY):
-                if not n.child.ptr in self.used_var_names.keys():
-                    self.used_var_names[n.child.ptr] = "variable"
-                elif self.used_var_names[n.child.ptr] == "list":
+                if n.child.ptr in self.used_var_names.keys() and self.used_var_names[n.child.ptr] == "list":
                     sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.child.ptr}' is already used by a list.", n.ln)
-            elif n.has_property(LIST):
+            if n.has_property(LIST):
                 if not n.value.ptr in self.used_var_names:
                     self.used_var_names[n.value.ptr] = "list"
                 else:
-                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.value.ptr}' is already used by some other variable!", n.ln)
+                    sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{n.value.ptr}' is already used by some other list!", n.ln)
             
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -792,14 +797,6 @@ class Sortout:
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
         return updated_nodes
-
-    def Sortout_unused(self, nodes):
-        updated_nodes = []
-
-        sys.error_system.throw_errors()
-        sys.error_system.throw_warnings()
-        sys.error_system.throw_silent()
-        return nodes
 
     def Sortout_loops(self, nodes):
         section = False
@@ -876,3 +873,104 @@ class Sortout:
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent()
         return self.nodes
+
+    def Phase3(self):
+        start = sys.virtual_stack.get_var_by_ptr("start")
+        skipped_vars = []
+        self.unused_variables = [(list[0], list[1], False) if list[1] == "list" else skipped_vars.append(list) for list in self.used_var_names.items()]
+        self.currSection = "start"
+        self.idx = start.idx
+
+        while self.idx < len(self.nodes):
+            currNode = self.nodes[self.idx]
+
+            if any(p in self.builtin_functions for p in currNode.properties):
+                self.Phase3_expr(currNode)
+
+            self.idx += 1
+
+        for item in skipped_vars:
+            sys.error_system.create_silent(SORTOUT, f"The variable '{item[0]} [{item[1]}]' was skipped durring Phase3 of the Sortout.")
+        for item in self.unused_variables:
+            if not item[2]:
+                sys.error_system.create_warning(UNUSED_VARIABLE, SORTOUT, f"The variable '{item[0]} [{item[1]}]' is never used in the program.")
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent()
+        return self.nodes    
+        
+    def Phase3_expr(self, currNode):
+        if currNode.has_property(INV):
+            self.Phase3_inv(currNode)
+        elif currNode.has_property(FLYOUT):
+            self.Phase3_flyout(currNode)
+        elif currNode.has_property(HONEY):
+            self.Phase3_honey(currNode)
+        elif currNode.has_property(STICK):
+            self.Phase3_stick(currNode)
+        elif currNode.has_property(IDENTIFIER):
+            self.Phase3_identifier(currNode)
+
+    def Phase3_inv(self, currNode):
+        left = currNode.child[0]
+        right = currNode.child[1]
+        expr = currNode.value
+
+        self.Phase3_expr(left)
+        self.Phase3_expr(right)        
+        self.Phase3_expr(expr)
+
+    def Phase3_flyout(self, currNode):
+        value = currNode.value
+        if value.has_property(IDENTIFIER):
+            self.Phase3_identifier(value)
+
+    def Phase3_honey(self, currNode):
+        value = currNode.value
+        tuple = (currNode.child.ptr, "variable", False)
+        defined = self.Phase3_is_defined(currNode.child.ptr)
+
+        if not defined:
+            self.unused_variables.append(tuple)
+
+        self.Phase3_expr(value)
+
+    def Phase3_stick(self, currNode):
+        self.Phase3_expr(currNode.child)
+        self.Phase3_expr(currNode.value)
+
+    def Phase3_identifier(self, currNode):
+        updated_unused_variables = []
+        object_found = False
+
+        for item in self.unused_variables:
+            ptr = item[0]
+            type = item[1]
+            used = item[2]
+
+            if ptr == currNode.ptr:
+                object_found = True
+                updated_unused_variables.append((ptr, type, True))
+            else:
+                updated_unused_variables.append(item)
+
+
+        if not object_found:
+            sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SORTOUT, f"The data object '{currNode.ptr}' is not defined.", currNode.ln)
+
+        self.unused_variables = updated_unused_variables
+
+    def Phase3_is_defined(self, var_ptr):
+        defined = False
+        for item in self.unused_variables:
+            ptr = item[0]
+            type = item[1]
+            used = item[2]
+
+            if ptr == var_ptr:
+                defined = True
+
+        return defined
+
+        

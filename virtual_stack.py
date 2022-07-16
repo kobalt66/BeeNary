@@ -8,10 +8,12 @@ class VirtualStack:
         self.stack = {}
         self.sys = classes.system(script = script, no_stack = True)
 
-    def isset(self, pointer):
-        check = True if pointer.ptr in self.stack.keys() else False
+    def isset(self, pointer, ln = None):
+        key = pointer if isinstance(pointer, str) else pointer.ptr 
+        check = True if key in self.stack.keys() else False
+        
         if not check:
-            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{pointer.ptr}' does not exist on the stack.", pointer.ln)
+            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{key}' does not exist on the stack.", pointer.ln if not ln else ln)
         
         return check
 
@@ -27,6 +29,14 @@ class VirtualStack:
         self.sys.error_system.throw_warnings()
         self.sys.error_system.throw_silent()
     
+    def get_var_by_ptr(self, ptr):
+        if self.isset(ptr, -1):
+            return self.stack[ptr]
+
+        self.sys.error_system.throw_errors()
+        self.sys.error_system.throw_warnings()
+        self.sys.error_system.throw_silent()
+
     def set_var(self, variable):
         if self.isset(variable.child):
             self.stack[variable.child.ptr] = variable
