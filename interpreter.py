@@ -414,10 +414,12 @@ class Parser:
 
     def keyword(self, tokens):
         keyword = tokens[self.idx]
-        properties = [BUILTIN]
+        properties = []
         if keyword.has_value("honey"):      properties.append(HONEY)
+        if keyword.has_value("stick"):      properties.append(STICK)
         
         if keyword.has_value("honeypot"):   
+            properties.append(BUILTIN)
             properties.append(HONEYPOT)
             properties.append(LIST)
 
@@ -836,6 +838,8 @@ class Sortout:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot be inside a hive section.", n.ln)
             if n.typeof(N_VALUE):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be single values somewhere in the script.", n.ln)
+            if (n.has_property(HONEY) or n.has_property(STICK)) and not n.has_property(BUILTIN):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
 
         if not start_section and not self.library:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
@@ -968,7 +972,16 @@ class Sortout:
             self.unused_variables.append(tuple)
 
     def Phase3_stick(self, currNode):
+        defined, var = self.Phase3_is_defined(currNode.child.ptr, currNode.ln)
+        if defined and not var[1] == "list":
+            sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You can only stick a value to a valid list.", currNode.ln)
+
         self.Phase3_expr(currNode.child)
+
+        defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
+        if defined and var[1] == "list":
+            sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You cannot add a list to a list.", currNode.ln)
+
         self.Phase3_expr(currNode.value)
 
     def Phase3_identifier(self, currNode):
