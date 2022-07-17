@@ -338,6 +338,7 @@ class Parser:
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
         self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL, TAKE]
         self.inv_condition_types    = [N_VALUE]
+        self.inv_expr_properties    = [BUILTIN]
         self.valid_operators        = ["is", "not", "in"]
         self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
 
@@ -511,7 +512,7 @@ class Parser:
         
             self.idx += 1
             expr = self.expr(tokens)
-            if not expr:
+            if not expr or expr.has_property(TOKEN) or not any(p in self.inv_expr_properties for p in expr.properties):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The inv-statement cannot be left without a following expression.", inv.ln)
 
             properties = [BUILTIN, INV]
@@ -666,6 +667,7 @@ class Sortout:
     def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None):
         self.nodes = nodes
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
+        self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
@@ -684,7 +686,6 @@ class Sortout:
         nodes = self.Sortout_param_check(self.nodes)
         nodes = self.libraries(nodes)
         nodes = self.Sortout_inv(nodes)
-        nodes = self.Sortout_loops(nodes)
         nodes = self.Sortout_others(nodes)
         self.nodes = nodes
         return self.nodes
@@ -788,34 +789,10 @@ class Sortout:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         return updated_nodes
 
-    def Sortout_loops(self, nodes):
-        section = False
-        section_name = ''
-        for n in nodes:
-            if n.typeof(N_SECTION):
-                section = True
-                section_name = n.value.value
-                continue
-            if section:
-                if n.has_property(INV):
-                    if n.value.has_property(FLYTO):
-                        if n.value.value.ptr == section_name:
-                            sys.error_system.create_warning(INFINITE_LOOP, SORTOUT, f"There is a good chance of an infinite loop at the section called '{section_name}'", n.ln)
-                            section = False
-
-                if n.has_property(FLYTO):
-                    if n.value.ptr == section_name:
-                        sys.error_system.create_warning(INFINITE_LOOP, SORTOUT, f"There is a good chance of an infinite loop at the section called '{section_name}'", n.ln)
-                        section = False
-
-        sys.error_system.throw_errors()
-        sys.error_system.throw_warnings()
-        sys.error_system.throw_silent(sys.show_silent_warnings)
-        return nodes
-
     def Sortout_others(self, nodes):
         start_section = False
         hive_start = False
+        inside_hive = False
         hive_end = False
         for n in nodes:
             if n.typeof(N_START):
@@ -825,14 +802,16 @@ class Sortout:
             if n.typeof(N_HIVE):
                 if not hive_start:
                     hive_start = True
+                    inside_hive = True
                 elif hive_start:
                     if hive_end:
                         sys.error_system.create_error(MULTI_HIVE_EXCEPTION, SORTOUT, "There can only be one hive section, defined by two hive tokens.", n.ln)
                     else:
                         hive_end = True
+                        inside_hive = False
                 elif hive_end:
                     sys.error_system.create_error(MULTI_HIVE_EXCEPTION, SORTOUT, "There can only be one hive section, defined by two hive tokens.", n.ln)
-            if n.has_property(HONEYPOT) and not hive_start:
+            if n.has_property(HONEYPOT) and not inside_hive:
                 sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "A honeypot can only be defined inside a hive section.", n.ln)
             if not n.has_property(HONEYPOT) and not n.has_property(HIVE) and hive_start and not hive_end:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot be inside a hive section.", n.ln)
@@ -887,7 +866,7 @@ class Sortout:
         for item in skipped_vars:
             sys.error_system.create_silent(SORTOUT, f"The variable '{item[0]} [{item[1]}]' was skipped durring Phase3 of the Sortout.")
         for item in self.unused_variables:
-            if not item[1] == "member" and not item[2] and not self.libraries:
+            if not item[1] == "member" and not item[2] and not self.library:
                 sys.error_system.create_warning(UNUSED_VARIABLE, SORTOUT, f"The variable '{item[0]} [{item[1]}]' is never used in the program.")
 
         sys.error_system.throw_errors()
@@ -929,19 +908,23 @@ class Sortout:
         right = currNode.child[1]
         expr = currNode.value
 
-        if not currNode.has_operator("in"):
-            defined_left, var_left = False, None
-            defined_right, var_right = False, None
+        defined_left, var_left = False, None
+        defined_right, var_right = False, None
 
-            if left.has_property(IDENTIFIER): defined_left, var_left = self.Phase3_is_defined(left.ptr, currNode.ln)
-            if right.has_property(IDENTIFIER): defined_right, var_right = self.Phase3_is_defined(right.ptr, currNode.ln)
+        if left.has_property(IDENTIFIER): defined_left, var_left = self.Phase3_is_defined(left.ptr, currNode.ln)
+        if right.has_property(IDENTIFIER): defined_right, var_right = self.Phase3_is_defined(right.ptr, currNode.ln)
 
-            if defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list"):
-                sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "If a component of a condition is an identifier of a list, it can only be compared to another list.", currNode.ln)
+        if not currNode.has_operator("in") and defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list"):
+            sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "If a component of a condition is an identifier of a list, it can only be compared to another list.", currNode.ln)
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and var_right[1] == "list" :
+            sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "A list cannot be inside a list.", currNode.ln)
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and not var_right[1] == "list" :
+            sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "You can only check if a value is in a list.", currNode.ln)
         elif currNode.has_operator("in") and right.has_property(IDENTIFIER):
             defined, var = self.Phase3_is_defined(right.ptr, currNode.ln)
             if defined and not var[1] == "list":
                 sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "The provided identifier has to be one from a list.", currNode.ln)
+
 
         self.Phase3_expr(left)
         self.Phase3_expr(right)
@@ -968,8 +951,12 @@ class Sortout:
         self.Phase3_expr(value)
         if defined and var[1] == "list":
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{currNode.child.ptr}' is already taken by another object.", currNode.ln)
-        else:
+        elif not defined:
             self.unused_variables.append(tuple)
+
+        defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
+        if defined and var[1] == "list":
+            sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You cannot define a variable with a list.", currNode.ln)
 
     def Phase3_stick(self, currNode):
         defined, var = self.Phase3_is_defined(currNode.child.ptr, currNode.ln)
@@ -1013,6 +1000,10 @@ class Sortout:
             sys.error_system.create_error(MEMBER_NAME_COLLISION, SORTOUT, f"The name '{currNode.child.ptr}' seems to be already taken by another variable. Change the variable name or the meadow member name.", currNode.ln)
         elif not defined:
             self.unused_variables.append(tuple)
+
+        if currNode.value.typeof(N_TOKEN):
+            if not any(p in self.valid_meadow_value_properties for p in currNode.value.properties):
+                sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, SORTOUT, "A meadow member can only have a token as it's value, if it features one of the following properties [" + ' '.join(get_node_property_to_str(p) for p in self.valid_meadow_value_properties) + "]")
 
         self.Phase3_expr(currNode.value)
 

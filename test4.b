@@ -1,7 +1,11 @@
 start:
-    :src<"./libs/vars.b">:
-    a honey "hello world"
-    
-    flyout a
 
-    sting a
+    :hive:
+        honeypot list
+    :hive:
+    a honey "hello world"
+    :src<"./libs/math.b">:
+
+    a honey take list 0
+
+:end<"asödf">:
