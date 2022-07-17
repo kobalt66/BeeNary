@@ -37,6 +37,7 @@ N_END                   = 0xb05
 N_HIVE                  = 0xb06
 N_VALUE                 = 0xb07
 N_PARAM                 = 0xb08
+N_LIB                   = 0xb09
 
 #####################################################
 # NODE properties
@@ -71,6 +72,10 @@ HONEYPOT                = 0xc26
 STICK                   = 0xc27
 LIST                    = 0xc28
 IDENTIFIER              = 0xc29
+SECTION                 = 0xc30
+LOADED                  = 0xc31
+ALWAYS_TRUE             = 0xc32
+ALWAYS_FALSE            = 0xc33
 
 #####################################################
 # ERROR codes
@@ -90,7 +95,7 @@ EXPECTED_HIVE_SECTION_EXCEPTION         = 0xd11
 MISSING_ARGUMENTS_EXCEPTION             = 0xd12
 INVALID_EXPRESSION_EXCEPTION            = 0xd13
 INVALID_PARAM_DECLARATION_EXCEPTION     = 0xd14
-INVALID_MATH_OPPERATION                 = 0xd15
+INVALID_MATH_OPERATION                  = 0xd15
 INVALID_LIST_USAGE_EXCEPTION            = 0xd16
 INVALID_NUMBER_EXCEPTION                = 0xd17
 MULTI_HIVE_EXCEPTION                    = 0xd18
@@ -98,6 +103,10 @@ MULTI_START_EXCEPTION                   = 0xd19
 WRONG_TOKEN_TYPE_EXCEPTION              = 0xd20
 TERMINAL_EXCEPTION                      = 0xd21
 SILENT_EXCEPTION                        = 0xd22
+TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
+INVALID_OPERATION_EXCEPTION             = 0xd24
+INVALID_TYPE_EXCEPTION                  = 0xd25
+INVALID_SECTION_EXCEPTION               = 0xd26
 
 #####################################################
 # WARNING codes
@@ -107,6 +116,7 @@ STUNG_INVINCIBLE_MEMBER                 = 0xe01
 UNUSED_VARIABLE                         = 0xe02
 MEMBER_NAME_COLLISION                   = 0xe03
 INFINITE_LOOP                           = 0xe04
+USELESS_INV_EXPRESSION                  = 0xe05
 
 #####################################################
 # WARNING codes
@@ -118,6 +128,7 @@ PARSING                 = 0xf03
 SORTOUT                 = 0xf04
 INTERPRETING            = 0xf05
 TERMINAL                = 0xf06
+STACK                   = 0xf07
 
 #####################################################
 # TO STRING functions
@@ -130,6 +141,7 @@ def get_exclamation_type_str(type):
     if type is SORTOUT:      return "SORTOUT"
     if type is INTERPRETING: return "INTERPRETER"
     if type is TERMINAL:     return "TERMINAL"
+    if type is STACK:        return "STACK"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -143,10 +155,11 @@ def get_exclamation_code_str(code):
     if code is MISSING_START_SECTION_EXCEPTION:         return "MISSING_START_SECTION_EXCEPTION"    
     if code is INVALID_CHARACTER_EXCEPTION:             return "INVALID_CHARACTER_EXCEPTION"        
     if code is EXPECTED_HIVE_SECTION_EXCEPTION:         return "EXPECTED_HIVE_SECTION_EXCEPTION"    
-    if code is MISSING_ARGUMENTS_EXCEPTION:             return "MISSING_ARGUMENTS_EXCEPTION"        
+    if code is MISSING_ARGUMENTS_EXCEPTION:             return "MISSING_ARGUMENTS_EXCEPTION"
+    if code is TOO_MANY_ARGUMENTS_EXCEPTION:            return "TOO_MANY_ARGUMENTS_EXCEPTION"        
     if code is INVALID_EXPRESSION_EXCEPTION:            return "INVALID_EXPRESSION_EXCEPTION"          
     if code is INVALID_PARAM_DECLARATION_EXCEPTION:     return "INVALID_PARAM_DECLARATION_EXCEPTION"
-    if code is INVALID_MATH_OPPERATION:                 return "INVALID_MATH_OPPERATION"            
+    if code is INVALID_MATH_OPERATION:                  return "INVALID_MATH_OPERATION"            
     if code is INVALID_LIST_USAGE_EXCEPTION:            return "INVALID_LIST_USAGE_EXCEPTION"          
     if code is MULTI_HIVE_EXCEPTION:                    return "MULTI_HIVE_EXCEPTION"                  
     if code is MULTI_START_EXCEPTION:                   return "MULTI_START_EXCEPTION"
@@ -158,6 +171,10 @@ def get_exclamation_code_str(code):
     if code is WRONG_TOKEN_TYPE_EXCEPTION:              return "WRONG_TOKEN_TYPE_EXCEPTION"
     if code is TERMINAL_EXCEPTION:                      return "TERMINAL_EXCEPTION"
     if code is SILENT_EXCEPTION:                        return "SILENT_EXCEPTION"
+    if code is USELESS_INV_EXPRESSION:                  return "USELESS_INV_EXPRESSION"
+    if code is INVALID_OPERATION_EXCEPTION:             return "INVALID_OPERATION_EXCEPTION"
+    if code is INVALID_TYPE_EXCEPTION:                  return "INVALID_TYPE_EXCEPTION"
+    if code is INVALID_SECTION_EXCEPTION:               return "INVALID_SECTION_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -191,7 +208,8 @@ def get_node_type_to_str(type):
     if type is N_END:                   return "END"      
     if type is N_HIVE:                  return "HIVE"     
     if type is N_VALUE:                 return "VALUE"    
-    if type is N_PARAM:                 return "PARAM"    
+    if type is N_PARAM:                 return "PARAM"
+    if type is N_LIB:                   return "LIB"    
 
 def get_node_property_to_str(property):
     if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
@@ -222,7 +240,11 @@ def get_node_property_to_str(property):
     if property is HONEYPOT:            return "HONEYPOT"     
     if property is STICK:               return "STICK"
     if property is LIST:                return "LIST"
-    if property is IDENTIFIER:          return "IDENTIFIER"      
+    if property is IDENTIFIER:          return "IDENTIFIER"   
+    if property is SECTION:             return "SECTION"
+    if property is LOADED:              return "LOADED"        
+    if property is ALWAYS_TRUE:         return "ALWAYS_TRUE"  
+    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE"      
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -238,8 +260,8 @@ def get_node_property_by_value(str_value):
 # INTERPRETER stuff
 #####################################################
 
-IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_'
-NUMBER_CHARS = '0123456789.'
+IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
+NUMBER_CHARS = '0123456789'
 VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#\" '
 KEYWORDS = [
     "true",
@@ -266,10 +288,6 @@ BOOLEAN = [
     "false"
 ]
 BUILTIN_FUNCTION = [
-    "div",
-    "add",
-    "mul",
-    "sub",
     "inv",
     "flyto",
     "flyout",
@@ -288,15 +306,19 @@ FATAL_ERRORS = [
     INVALID_MEMBER_VALUE_EXCEPTION,    
     MISSING_START_SECTION_EXCEPTION,        
     EXPECTED_HIVE_SECTION_EXCEPTION,    
-    MISSING_ARGUMENTS_EXCEPTION,        
+    MISSING_ARGUMENTS_EXCEPTION,
+    TOO_MANY_ARGUMENTS_EXCEPTION,        
     INVALID_EXPRESSION_EXCEPTION,       
     INVALID_PARAM_DECLARATION_EXCEPTION,
-    INVALID_MATH_OPPERATION,            
+    INVALID_MATH_OPERATION,            
     INVALID_LIST_USAGE_EXCEPTION,       
     INVALID_NUMBER_EXCEPTION,
     INVALID_CHARACTER_EXCEPTION,           
     MULTI_HIVE_EXCEPTION,               
     MULTI_START_EXCEPTION,              
     WRONG_TOKEN_TYPE_EXCEPTION,
-    TERMINAL_EXCEPTION   
+    TERMINAL_EXCEPTION,
+    INVALID_OPERATION_EXCEPTION,
+    INVALID_TYPE_EXCEPTION,
+    INVALID_SECTION_EXCEPTION
 ]

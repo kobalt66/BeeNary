@@ -1,4 +1,5 @@
 import error_system as e
+import virtual_stack as v
 from constants import IDENTIFIER, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
 
 class token:
@@ -41,7 +42,8 @@ class node:
         self.params = params
         self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
-
+        self.idx = 0
+        
     def get_param_to_str(self, param):
         if param.has_property(IDENTIFIER):
             return param.ptr
@@ -70,6 +72,17 @@ class node:
     def has_property(self, property):
         return True if property in self.properties else False
     
+    def has_operator(self, operator):
+        return True if any(op.str_value == operator for op in self.operators) else False
+    
+    def operator_count(self, operator):
+        count = 0
+        if self.has_operator(operator):
+            for op in self.operators:
+                if op.str_value == operator:
+                    count += 1
+        return count    
+
     def add_property(self, property):
         if not self.has_property(property):
             self.properties.append(property)
@@ -94,9 +107,12 @@ class node:
             return f"NO NODE REPRESENTATION FOUND ({self.ln})"
 
 class system:
-    def __init__(self, code = "", script = "<terminal>"):
+    def __init__(self, code = "", script = "<terminal>", no_stack = False):
         self.code = code
         self.error_system = e.ErrorSystem(script)
+        self.virtual_stack = None
+        if not no_stack: self.virtual_stack = v.VirtualStack(script)
+    
         self.show_tokens = False
         self.tokens_show_nl = False
         self.tokens_show_space = False
@@ -105,6 +121,8 @@ class system:
         self.nodes_show_properties = False
         self.nodes_show_child_properties = False
         self.nodes_show_parameters = False
+        self.show_sorted_nodes = False
+        self.show_stack_objects = False
 
         self.flags = {
             "-t"  : "-t\tToggle token printing.", 
@@ -114,7 +132,9 @@ class system:
             "-n"  : "-n\tToggle node printing.",
             "-np" : "-np\tToggle node property printing.",
             "-cp" : "-cp\tToggle property printing of a child node.",
-            "-pa" : "-pa\tToggle node parameter printing."
+            "-pa" : "-pa\tToggle node parameter printing.",
+            "-sn" : "-sn\tToggle sorted node printing.",
+            "-vs" : "-vs\tToggle virtual stack printing."
         }
 
     def process_help_flag(self, argv2 = None):
@@ -153,6 +173,10 @@ class system:
             self.nodes_show_child_properties = True
         elif argv == "-pa":
             self.nodes_show_parameters = True
+        elif argv == "-sn":
+            self.show_sorted_nodes = True
+        elif argv == "-vs":
+            self.show_stack_objects = True
 
         self.error_system.throw_errors()
         self.error_system.throw_warnings()
