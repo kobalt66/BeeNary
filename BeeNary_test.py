@@ -6,8 +6,8 @@ import sys as s
 gettrace = getattr(s, 'gettrace', None)
 if gettrace: 
     if gettrace():
-        code = BeeNary.get_code("test.b")
-        BeeNary.run(code, "test.b", "-vs", "", "", "-sw", "", "", "", "", "")
+        code = BeeNary.get_code("test4.b")
+        BeeNary.run(code, "test4.b", "-vs", "", "", "-sw", "", "", "", "", "")
         exit(0)
 
 sys = system()

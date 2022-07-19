@@ -35,6 +35,10 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     sorted_nodes = sortout.Phase1()
     sorted_nodes = sortout.Phase2()
     sorted_nodes = sortout.Phase3()
+    sorted_nodes = sortout.Finish()
+
+    interpreter = Interpreter(sorted_nodes)
+    interpreter.execute()
 
     if sys.show_tokens:
         print("\n\nTOKENS:")
@@ -59,7 +63,7 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     
     if sys.show_stack_objects:
         print("\n\nVIRTUAL STACK:")
-        for ptr in sys.virtual_stack.stack:
+        for ptr in sys.virtual_stack.stack.keys():
             str = sys.virtual_stack.stack[ptr].to_str(sys)
             if str: print(str)
         print("\n")
@@ -1038,16 +1042,18 @@ class Sortout:
     def Phase3_flyto(self, currNode):
         section_ptr = currNode.value.ptr
         if not section_ptr in sys.virtual_stack.stack.keys():
-            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not defined")
+            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not defined.", currNode.ln)
 
         section = sys.virtual_stack.get_var_by_ptr(section_ptr)
-
-        if not section_ptr in self.used_sections:
-            self.used_sections.append(section_ptr)
-            self.currSection = section_ptr
-            self.idx = section.idx
+        if not section or not section.has_property(SECTION):
+            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not a valid section.", currNode.ln)
         else:
-            sys.error_system.create_silent(SORTOUT, "There might the chance of an infinite loop...", currNode.ln)
+            if not section_ptr in self.used_sections:
+                self.used_sections.append(section_ptr)
+                self.currSection = section_ptr
+                self.idx = section.idx
+            else:
+                sys.error_system.create_silent(SORTOUT, "There might the chance of an infinite loop...", currNode.ln)
 
     def Phase3_list(self, currNode):
         tuple = (currNode.value.ptr, "list", False)
@@ -1110,3 +1116,87 @@ class Sortout:
                 updated_list.append(item)
         
         self.unused_variables = updated_list
+
+    def Finish(self):
+        virtual_stack = sys.virtual_stack.stack.copy()
+
+        for item in virtual_stack.items():
+            if item[1].has_property(WAX):
+                sys.virtual_stack.del_var(item[0])
+
+        for n in self.nodes:
+            if n.typeof(N_LIB) and n.has_property(LOADED):
+                n.pop_property(LOADED)
+
+        return self.nodes
+
+
+class Interpreter:
+    def __init__(self, nodes):
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, SECTION, EXTERN, HONEYPOT]
+        self.regular_values = [INT, FLOAT, BOOL, STRING]
+        self.nodes = nodes
+        self.idx = 0
+        self.should_exit = False
+
+    def execute(self):
+        start = sys.virtual_stack.get_var_by_ptr("start")
+        self.idx = start.idx
+        self.ln = -1
+
+        while self.idx < len(self.nodes):
+            self.idx += 1
+            currNode = self.nodes[self.idx]
+            self.ln = currNode.ln
+            
+            if any(p in self.function_properties for p in currNode.properties):
+                self.functions(currNode)
+            elif currNode.has_property(TOKEN):
+                self.tokens(currNode)
+            elif currNode.has_property(HONEY):
+                self.honey(currNode)
+
+            if self.should_exit:
+                break
+
+    def functions(self, currNode):
+        if currNode.has_property(FLYOUT):
+            value = self.extract_value(currNode.value)
+            print(value.value)
+        elif currNode.has_property(STING):
+            var = currNode.value
+            sys.virtual_stack.del_var(var)
+
+    def honey(self, currNode):
+        value = self.extract_value(currNode.value)
+        ptr = currNode.child.ptr
+        currNode.value = value
+        if sys.virtual_stack.isset(ptr):
+            sys.virtual_stack.set_var(currNode)
+        else:
+            sys.virtual_stack.init_var(currNode)
+
+    def extract_value(self, value):
+        if value.has_property(HONEY):
+            return value.value
+        elif value.has_property(WAX):
+            return self.extract_value(value.value)
+        elif value.has_property(IDENTIFIER):
+            value = sys.virtual_stack.get_var(value)
+            value = self.extract_value(value)
+            return value
+        elif value.has_property(TOKEN):
+            return self.tokens(value)
+        elif any(p in self.regular_values for p in value.properties):
+            return value
+
+    def tokens(self, currNode):
+        if currNode.typeof(N_END):
+            self.should_exit = True
+            if currNode.params:
+                msg = currNode.params[0].value
+                print(msg)
+        elif currNode.has_property(TRACE):
+            print(f"[INTERPRETER] executing line {self.ln}...")
+
+            

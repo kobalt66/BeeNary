@@ -1,11 +1,10 @@
 start:
 
-    :hive:
-        honeypot list
-    :hive:
-    a honey "hello world"
-    :src<"./libs/math.b">:
+sting a
 
-    a honey take list 0
+a honey "hello world"
+flyout a
+a honey true
+flyout a
 
-:end<"asödf">:
+:end:

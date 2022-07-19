@@ -9,9 +9,9 @@ start:
     d honey take b 0
     d honey a
 
-    flyto loop
+    flyto start
 
-init_e:
+init_e: 
     #inv b is b flyout "a is c"
     #inv 1 in b inv 2 in b flyout "asfasdf"
 

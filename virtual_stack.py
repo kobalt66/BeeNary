@@ -10,11 +10,7 @@ class VirtualStack:
 
     def isset(self, pointer, ln = None):
         key = pointer if isinstance(pointer, str) else pointer.ptr 
-        check = True if key in self.stack.keys() else False
-        
-        if not check:
-            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{key}' does not exist on the stack.", pointer.ln if not ln else ln)
-        
+        check = True if key in self.stack.keys() else False    
         return check
 
     def reset(self):
@@ -24,6 +20,8 @@ class VirtualStack:
     def get_var(self, pointer):
         if self.isset(pointer):
             return self.stack[pointer.ptr]
+        else:
+            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{pointer.ptr}' does not exist on the stack.", pointer.ln)
 
         self.sys.error_system.throw_errors()
         self.sys.error_system.throw_warnings()
@@ -32,6 +30,8 @@ class VirtualStack:
     def get_var_by_ptr(self, ptr):
         if self.isset(ptr, -1):
             return self.stack[ptr]
+        else:
+            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{ptr}' does not exist on the stack.", -1)
 
         self.sys.error_system.throw_errors()
         self.sys.error_system.throw_warnings()
@@ -40,15 +40,20 @@ class VirtualStack:
     def set_var(self, variable):
         if self.isset(variable.child):
             self.stack[variable.child.ptr] = variable
+        else:
+            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{variable.child.ptr}' does not exist on the stack.", variable.ln)
 
         self.sys.error_system.throw_errors()
         self.sys.error_system.throw_warnings()
         self.sys.error_system.throw_silent()
 
     def del_var(self, pointer):
-        if self.isset(pointer):
-            self.stack.pop(pointer.ptr)
-        
+        key = pointer if isinstance(pointer, str) else pointer.ptr
+        if self.isset(key):
+            self.stack.pop(key)
+        else:
+            self.sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, STACK, f"The variable pointer '{key}' does not exist on the stack.", pointer.ln if not isinstance(pointer, str) else -1)
+
         self.sys.error_system.throw_errors()
         self.sys.error_system.throw_warnings()
         self.sys.error_system.throw_silent()
