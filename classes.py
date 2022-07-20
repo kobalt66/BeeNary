@@ -56,7 +56,10 @@ class node:
 
     def get_value_to_str(self):
         if not self.value: return self.ptr
-        if self.value.has_property(IDENTIFIER):
+        
+        if hasattr(self.value, '__call__'):
+            return f"[python_function]: {self.value.__name__}"
+        elif self.value.has_property(IDENTIFIER):
             return self.value.ptr
 
         if self.typeof(N_START):

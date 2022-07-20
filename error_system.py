@@ -46,6 +46,11 @@ class ErrorSystem:
         error = exclamation(code, type, msg, ln, self.script)
         self.errors.append(error)
 
+    def create_error_from_exception(self, e, code, type, ln):
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        self.create_error(code, type, f"{exc_type} {e} ({fname}:{exc_tb.tb_lineno})", ln)
+
     def create_warning(self, code, type, msg = "Something went wrong...", ln = -1):
         warning = exclamation(code, type, msg, ln, self.script)
         self.warnings.append(warning)

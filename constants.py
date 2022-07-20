@@ -107,6 +107,8 @@ TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
 INVALID_OPERATION_EXCEPTION             = 0xd24
 INVALID_TYPE_EXCEPTION                  = 0xd25
 INVALID_SECTION_EXCEPTION               = 0xd26
+INVALID_ARGUMENT_EXCEPTION              = 0xd27
+PYTHON_EXCEPTION                        = 0xd28
 
 #####################################################
 # WARNING codes
@@ -175,6 +177,8 @@ def get_exclamation_code_str(code):
     if code is INVALID_OPERATION_EXCEPTION:             return "INVALID_OPERATION_EXCEPTION"
     if code is INVALID_TYPE_EXCEPTION:                  return "INVALID_TYPE_EXCEPTION"
     if code is INVALID_SECTION_EXCEPTION:               return "INVALID_SECTION_EXCEPTION"
+    if code is INVALID_ARGUMENT_EXCEPTION:              return "INVALID_ARGUMENT_EXCEPTION"
+    if code is PYTHON_EXCEPTION:                        return "PYTHON_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -261,7 +265,7 @@ def get_node_property_by_value(str_value):
 #####################################################
 
 IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
-NUMBER_CHARS = '0123456789'
+NUMBER_CHARS = '-0123456789'
 VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#\" '
 KEYWORDS = [
     "true",
@@ -320,5 +324,7 @@ FATAL_ERRORS = [
     TERMINAL_EXCEPTION,
     INVALID_OPERATION_EXCEPTION,
     INVALID_TYPE_EXCEPTION,
-    INVALID_SECTION_EXCEPTION
+    INVALID_SECTION_EXCEPTION,
+    INVALID_ARGUMENT_EXCEPTION,
+    PYTHON_EXCEPTION
 ]
