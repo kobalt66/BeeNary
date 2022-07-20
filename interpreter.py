@@ -37,9 +37,9 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     sorted_nodes = sortout.Phase3()
     sorted_nodes = sortout.Finish()
 
-    print("\n")
     interpreter = Interpreter(sorted_nodes)
     interpreter.execute()
+    sys.stdout.flush()
 
     if sys.show_tokens:
         print("\n\nTOKENS:")
@@ -1175,8 +1175,9 @@ class Interpreter:
             elif currNode.has_property(EXTERN):
                 self.extern(currNode)
             elif currNode.typeof(N_LIB):
-                self.library(currNode)
-                self.nodes[self.idx].add_property(LOADED)
+                if not currNode.has_property(LOADED):
+                    self.library(currNode)
+                    self.nodes[self.idx].add_property(LOADED)
 
             if self.should_exit:
                 break
@@ -1198,6 +1199,7 @@ class Interpreter:
     def extern(self, currNode):
         value = sys.virtual_stack.get_var(currNode)
         params = currNode.params
+
         if value.has_property(LIST):
             if not len(params) == 1:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts one argument, which is the idx.", currNode.ln)
@@ -1206,11 +1208,37 @@ class Interpreter:
             if valid:
                 value = value.child[idx]
                 return self.extract_value(value)
+        elif value.has_property(FUNCTIONPTR):
+            function = value.value
+            func_name = function.__name__
+            arg_count = sys.get_function_arg_count(func_name)
+
+            if len(params) < arg_count:
+                sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
+                self.should_exit = True
+                return None
+            elif len(params) > arg_count:
+                sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
+                self.should_exit = True
+                return None
+
+            check = self.validate_arg_types(func_name, params, currNode.ln)
+            if not check: return None
+
+            final_params = self.translate_params_to_lib_format(currNode)
+            return_value = function(final_params)
+            if return_value: return_value = self.translate_return_to_node_format(return_value, currNode.ln)
+
+            return return_value
 
     def honey(self, currNode):
         value = self.extract_value(currNode.value)
         ptr = currNode.child.ptr
         currNode.value = value
+
+        if not value:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to asign to {ptr} doesn't carry a value. Thus you cannot use the object as a value.")
+            self.should_exit = True
 
         if sys.virtual_stack.isset(ptr):
             sys.virtual_stack.set_var(currNode)
@@ -1226,9 +1254,18 @@ class Interpreter:
     def wax(self, currNode):
         value = None
         if self.init_functionptr:
+            if not currNode.value.has_property(PYTHON):
+                sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, INTERPRETING, "This member is initialized as a function pointer. It can only hold the python-token.", currNode.ln)
+                self.should_exit = True
+                return
+
             value = self.functionptr(currNode)
             currNode.add_property(FUNCTIONPTR)
             self.init_functionptr = False
+        elif not self.init_functionptr and currNode.value.has_property(PYTHON):
+            sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, INTERPRETING, "Did not expect a function pointer! First the member has to be initialized as a function pointer via the functionptr-token.", currNode.ln)
+            self.should_exit = True
+            return
         else:
             value = self.extract_value(currNode.value)
             
@@ -1266,7 +1303,71 @@ class Interpreter:
         
         return not self.should_exit, idx
 
+    def validate_arg_types(self, func_name, params, ln):
+        arg_types = sys.get_function_arg_types(func_name)
+
+        idx = 0
+        for p in params:
+            if arg_types[idx] is L_ANY: continue
+
+            if p.has_property(IDENTIFIER):
+                p = sys.virtual_stack.get_var(p)
+                p = self.extract_value(p)
+
+            param_types = []
+            for property in p.properties:
+                type = get_value_type_to_lib_value_type(property)
+                if type: param_types.append(type)
+
+            if not any(type == arg_types[idx] for type in param_types):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                self.should_exit = True
+
+            idx += 1
+        
+        return not self.should_exit
+
+    def translate_params_to_lib_format(self, currNode):
+        final_params = []
+        for p in currNode.params:
+            value = None
+            if p.has_property(IDENTIFIER):
+                value = sys.virtual_stack.get_var(p)
+            else:
+                value = self.extract_value(p)
+            
+            if value.has_property(LIST):
+                final_list = [self.extract_lib_value(v) for v in value.child]
+                final_params.append(final_list)
+            elif any(p in self.regular_values for p in value.properties):
+                final_params.append(self.extract_lib_value(value))
+            else:
+                value = self.extract_value(value)
+                final_params.append(self.extract_lib_value(value))
+
+        return final_params
+
+    def translate_return_to_node_format(self, return_value, ln):
+        if type(return_value) in [int, float, str, bool]:
+            return self.regular_value_to_node(return_value, ln)
+        if isinstance(return_value, tuple) or isinstance(return_value, list):
+            print("SHOULD RETURN HONEYCOMB...")
+
+    def regular_value_to_node(self, return_value, ln):
+        parser = Parser(None)
+        if isinstance(return_value, int):
+            return parser.number(T_INT, str(return_value), ln)
+        if isinstance(return_value, float):
+            return parser.number(T_FLOAT, str(return_value), ln)
+        if isinstance(return_value, str):
+            return parser.string(str(return_value), ln)
+        if isinstance(return_value, bool):
+            return parser.boolean(str(return_value), ln)
+
     def extract_value(self, value):
+        if hasattr(value, "__call__"):
+            return Parser(None).string(f"{value.__name__}: [ <object> function ]", -1)
+
         if value.has_property(HONEY):
             return value.value
         elif value.has_property(HONEYPOT):
@@ -1286,6 +1387,16 @@ class Interpreter:
         elif any(p in self.regular_values for p in value.properties):
             return value
 
+    def extract_lib_value(self, value):
+        if value.has_property(INT):
+            return int(value.value)
+        if value.has_property(FLOAT):
+            return float(value.value)
+        if value.has_property(BOOL):
+            return True if value.value == "true" else False
+        if value.has_property(STRING):
+            return value.value
+
     def tokens(self, currNode):
         if currNode.typeof(N_END):
             self.should_exit = True
@@ -1298,6 +1409,8 @@ class Interpreter:
             self.init_functionptr = True
         elif currNode.has_property(MEADOW):
             self.in_library = True
+        elif currNode.has_property(HONEYCOMB):
+            print("(from 'def tokens(...')ENCOUNTERED HONEYCOMB! IMPLEMENT THEM TO USE THEM AS NORMAL VALUES!")
 
     def functionptr(self, currNode):
         if not currNode.value.has_property(PYTHON):
@@ -1313,6 +1426,9 @@ class Interpreter:
                 module = getattr(module, sub)
 
             function = getattr(module, currNode.child.ptr)
+            arg_count = getattr(module, f"{currNode.child.ptr}_arg_count")
+            arg_types = getattr(module, f"{currNode.child.ptr}_arg_types")
+            sys.init_extern_function(currNode.child.ptr, arg_count, arg_types)
             return function
         except Exception as e:
             sys.error_system.create_error_from_exception(e, PYTHON_EXCEPTION, INTERPRETING, currNode.ln)

@@ -26,6 +26,13 @@ flyout c
 :src<"./libs/math.b">:
 
 flyout pi
-sting pi
+
+lenghtof<list>
+a honey add<1, 1>
+
+flyout a
+
+a honey add<a, a>
+flyout a
 
 :end:

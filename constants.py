@@ -131,6 +131,19 @@ SORTOUT                 = 0xf04
 INTERPRETING            = 0xf05
 TERMINAL                = 0xf06
 STACK                   = 0xf07
+SYSTEM                  = 0xf08
+
+#####################################################
+# LIBRARY stuff (python)
+#####################################################
+
+# arg types
+L_NUMBER                = 0xfa01
+L_STRING                = 0xfa02
+L_BOOL                  = 0xfa03
+L_OBJECT                = 0xfa04
+L_LIST                  = 0xfa05
+L_ANY                   = 0xfa06
 
 #####################################################
 # TO STRING functions
@@ -144,6 +157,7 @@ def get_exclamation_type_str(type):
     if type is INTERPRETING: return "INTERPRETER"
     if type is TERMINAL:     return "TERMINAL"
     if type is STACK:        return "STACK"
+    if type is SYSTEM:       return "SYSTEM"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -258,7 +272,22 @@ def get_node_property_by_value(str_value):
     if str_value == "meadow":           return MEADOW      
     if str_value == "end":              return END         
     if str_value == "trace":            return TRACE       
-    if str_value == "hive":             return HIVE        
+    if str_value == "hive":             return HIVE  
+
+def get_value_type_to_lib_value_type(type):
+    if type in [INT, FLOAT]:            return L_NUMBER
+    if type is STRING:                  return L_STRING
+    if type is BOOL:                    return L_BOOL  
+    if type is HONEYCOMB:               return L_OBJECT   
+    if type is LIST:                    return L_LIST
+
+def get_lib_value_type_to_str(type):    
+    if type is L_NUMBER:                return "NUMBER"
+    if type is L_STRING:                return "STRING"
+    if type is L_BOOL:                  return "BOOL"
+    if type is L_OBJECT:                return "OBJECT"
+    if type is L_LIST:                  return "LIST"
+    if type is L_ANY:                   return "ANY"
 
 #####################################################
 # INTERPRETER stuff
