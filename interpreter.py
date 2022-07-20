@@ -82,6 +82,7 @@ def get_code(path):
     except:
         print("An error occured while reading from a file.")
 
+
 ######################################################################################################
 
 
@@ -919,18 +920,13 @@ class Sortout:
         if left.has_property(IDENTIFIER): defined_left, var_left = self.Phase3_is_defined(left.ptr, currNode.ln)
         if right.has_property(IDENTIFIER): defined_right, var_right = self.Phase3_is_defined(right.ptr, currNode.ln)
 
-        if not currNode.has_operator("in") and defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list"):
+        if not currNode.has_operator("in") and (defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list")):
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "If a component of a condition is an identifier of a list, it can only be compared to another list.", currNode.ln)
-        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and var_right[1] == "list" :
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and var_right[1] == "list":
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "A list cannot be inside a list.", currNode.ln)
-        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and not var_right[1] == "list" :
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and not var_right[1] == "list":
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "You can only check if a value is in a list.", currNode.ln)
-        elif currNode.has_operator("in") and right.has_property(IDENTIFIER):
-            defined, var = self.Phase3_is_defined(right.ptr, currNode.ln)
-            if defined and not var[1] == "list":
-                sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "The provided identifier has to be one from a list.", currNode.ln)
-
-
+    
         self.Phase3_expr(left)
         self.Phase3_expr(right)
         self.Phase3_expr(expr, True if currNode.has_property(ALWAYS_TRUE) else False)
@@ -1147,6 +1143,7 @@ class Interpreter:
         self.should_exit = False
         self.init_functionptr = False
         self.in_library = False
+        self.every_data = False
 
     def execute(self):
         start = sys.virtual_stack.get_var_by_ptr("start")
@@ -1162,29 +1159,30 @@ class Interpreter:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, INTERPRETING, "A expression with the properties [" + ' '.join(p in self.invalid_expression for p in currNode.properties) + "] is invalid.", currNode.ln)
                 break
 
-            if any(p in self.function_properties for p in currNode.properties):
-                self.functions(currNode)
-            elif currNode.has_property(TOKEN):
-                self.tokens(currNode)
-            elif currNode.has_property(HONEY):
-                self.honey(currNode)
-            elif currNode.has_property(STICK):
-                self.stick(currNode)
-            elif currNode.has_property(HONEYPOT):
-                self.honeypot(currNode)
-            elif currNode.has_property(EXTERN):
-                self.extern(currNode)
-            elif currNode.typeof(N_LIB):
-                if not currNode.has_property(LOADED):
-                    self.library(currNode)
-                    self.nodes[self.idx].add_property(LOADED)
-
-            if self.should_exit:
-                break
+            self.expression(currNode)
+            if self.should_exit: break
         
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.create_silent(sys.show_silent_warnings)
+
+    def expression(self, currNode):
+        if any(p in self.function_properties for p in currNode.properties):
+            self.functions(currNode)
+        elif currNode.has_property(TOKEN):
+            self.tokens(currNode)
+        elif currNode.has_property(HONEY):
+            self.honey(currNode)
+        elif currNode.has_property(STICK):
+            self.stick(currNode)
+        elif currNode.has_property(HONEYPOT):
+            self.honeypot(currNode)
+        elif currNode.has_property(EXTERN):
+            self.extern(currNode)
+        elif currNode.typeof(N_LIB):
+            if not currNode.has_property(LOADED):
+                self.library(currNode)
+                self.nodes[self.idx].add_property(LOADED)
 
     def functions(self, currNode):
         if currNode.has_property(FLYOUT):
@@ -1198,6 +1196,8 @@ class Interpreter:
             sys.virtual_stack.del_var(var)
         elif currNode.has_property(TAKE):
             self.take(currNode)
+        elif currNode.has_property(INV):
+            self.inv(currNode)
 
     def extern(self, currNode):
         value = sys.virtual_stack.get_var(currNode)
@@ -1294,6 +1294,35 @@ class Interpreter:
             del list.child[idx]
             sys.virtual_stack.set_var(list)
 
+    def inv(self, currNode):
+        not_condition = False
+        if currNode.has_operator("not"):
+            op_count = currNode.operator_count("not")
+            not_condition = False if (op_count % 2) == 0 else True
+
+        left = currNode.child[0]
+        right = currNode.child[1]
+
+        self.every_data = True
+        value_left = self.extract_lib_value(self.extract_value(left))
+        value_right = self.extract_lib_value(self.extract_value(right))
+        self.every_data = False
+
+        if currNode.has_operator("is"):
+            if not_condition:
+                if not value_left == value_right:
+                    self.expression(currNode.value)
+            else:
+                if value_left == value_right:
+                    self.expression(currNode.value)
+        elif currNode.has_operator("in"):
+            if not_condition:
+                if not any(item is value_left for item in value_right):
+                    self.expression(currNode.value)
+            else:
+                if any(item is value_left for item in value_right):
+                    self.expression(currNode.value)
+
     def validate_list_idx(self, list, idx_value, ln):
         idx = -1
         try: idx = int(idx_value) 
@@ -1332,6 +1361,8 @@ class Interpreter:
         return not self.should_exit
 
     def translate_params_to_lib_format(self, currNode):
+        types = self.regular_values
+        types.append(LIST)
         final_params = []
         for p in currNode.params:
             value = None
@@ -1340,10 +1371,7 @@ class Interpreter:
             else:
                 value = self.extract_value(p)
             
-            if value.has_property(LIST):
-                final_list = [self.extract_lib_value(v) for v in value.child]
-                final_params.append(final_list)
-            elif any(p in self.regular_values for p in value.properties):
+            if any(p in types for p in value.properties):
                 final_params.append(self.extract_lib_value(value))
             else:
                 value = self.extract_value(value)
@@ -1375,7 +1403,7 @@ class Interpreter:
         if value.has_property(HONEY):
             return value.value
         elif value.has_property(HONEYPOT):
-            if not value.params:
+            if not value.params and not self.every_data:
                 return Parser(None).string(f"{value.value.ptr}: [ <object> honeypot ]", value.ln)
             return value
         elif value.has_property(EXTERN):
@@ -1400,6 +1428,8 @@ class Interpreter:
             return True if value.value == "true" else False
         if value.has_property(STRING):
             return value.value
+        if value.has_property(LIST):
+            return [self.extract_lib_value(v) for v in value.child]
 
     def tokens(self, currNode):
         if currNode.typeof(N_END):
