@@ -109,6 +109,12 @@ class node:
         else:
             return f"NO NODE REPRESENTATION FOUND ({self.ln})"
 
+    def copy(self):
+        n = node(self.type, self.ln, self.properties, self.child, self.value, self.params, self.operators)
+        n.set_ptr(self.ptr)
+        n.idx = self.idx
+        return n
+
 class system:
     def __init__(self, code = "", script = "<terminal>", no_stack = False):
         self.code = code

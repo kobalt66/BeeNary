@@ -704,7 +704,7 @@ class Sortout:
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
                 elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END):
+                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END) and not n.has_property(HONEYCOMB):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
 
         sys.error_system.throw_errors()
@@ -1190,6 +1190,9 @@ class Interpreter:
         if currNode.has_property(FLYOUT):
             value = self.extract_value(currNode.value)
             print(value.value)
+        elif currNode.has_property(FLYTO):
+            section = sys.virtual_stack.get_var(currNode.value)
+            self.idx = section.idx
         elif currNode.has_property(STING):
             var = currNode.value
             sys.virtual_stack.del_var(var)
@@ -1232,18 +1235,19 @@ class Interpreter:
             return return_value
 
     def honey(self, currNode):
-        value = self.extract_value(currNode.value)
-        ptr = currNode.child.ptr
-        currNode.value = value
+        honey = currNode.copy()
+        value = self.extract_value(honey.value)
+        ptr = honey.child.ptr
+        honey.value = value
 
         if not value:
-            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to asign to {ptr} doesn't carry a value. Thus you cannot use the object as a value.")
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to asign to {ptr} doesn't carry a value. Thus you cannot use the object as a value.", honey.ln)
             self.should_exit = True
 
         if sys.virtual_stack.isset(ptr):
-            sys.virtual_stack.set_var(currNode)
+            sys.virtual_stack.set_var(honey)
         else:
-            sys.virtual_stack.init_var(currNode)
+            sys.virtual_stack.init_var(honey)
 
     def stick(self, currNode):
         value = self.extract_value(currNode.value)
@@ -1441,6 +1445,10 @@ class Interpreter:
         for member in currNode.child:
             if member.has_property(WAX):
                 self.wax(member)
+            elif member.has_property(PYTHON) or member.has_property(HONEYCOMB):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, INTERPRETING, "Tokens with the properties [PYTHON | HONEYCOMB] can only act as a member value and cannot act as an expression.", currNode.ln)
+                self.should_exit = True
+                break
             elif member.has_property(TOKEN):
                 self.tokens(member)
         
