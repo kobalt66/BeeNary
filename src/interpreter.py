@@ -1,14 +1,16 @@
 from constants import *
 from classes import *
-import io
+import io, os
+import sys as s
 
+s.path.insert(1, os.getcwd())
 
 sys = None
 
 def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
     sys = system(code, argv1)
-    
+
     if argv1 == "-help":
         sys.process_help_flag(argv2)
         exit(0)
@@ -79,8 +81,10 @@ def get_code(path):
         code = file.read()
         file.close()
         return code
-    except:
-        print("An error occured while reading from a file.")
+    except Exception as e:
+        sys = system("", no_stack = True)
+        sys.error_system.create_error_from_exception(e, PYTHON_EXCEPTION, TERMINAL, -1)
+        sys.error_system.throw_errors()
 
 
 ######################################################################################################
@@ -720,6 +724,7 @@ class Sortout:
             if n.has_property(SRC):
                 params = n.params
                 lib_path = params[0].value
+                lib_path = lib_path.replace("[CURRDIR]", os.getcwd())
                 code = get_code(lib_path)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
@@ -1152,6 +1157,10 @@ class Interpreter:
 
         while self.idx < len(self.nodes):
             self.idx += 1
+            if self.idx >= len(self.nodes):
+                sys.error_system.create_error(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "The script needs at least one end token so that the program can exit properly.", self.ln)
+                break
+
             currNode = self.nodes[self.idx]
             self.ln = currNode.ln
             
@@ -1206,7 +1215,8 @@ class Interpreter:
         if value.has_property(LIST):
             if not len(params) == 1:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts one argument, which is the idx.", currNode.ln)
-            
+                self.should_exit = True
+
             valid, idx = self.validate_list_idx(value.child, params[0].value, currNode.ln)
             if valid:
                 value = value.child[idx]
@@ -1233,6 +1243,24 @@ class Interpreter:
             if return_value: return_value = self.translate_return_to_node_format(return_value, currNode.ln)
 
             return return_value
+        elif value.has_property(WAX):
+            value = self.extract_value(value)
+            if not len(params) == len(value.params):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The honeycomb identifier expects {len(value.params)} argument.", currNode.ln)
+                self.should_exit = True
+            
+            final_params = [self.extract_value(v) for v in currNode.params]
+            final_params = [self.extract_lib_value(v) for v in final_params]
+            return self.translate_return_to_node_format(final_params, currNode.ln)
+        elif value.value and value.value.has_property(OBJECT):
+            if not len(params) == 1:
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "An honeycomb identifier only excepts one argument, which is the idx.", currNode.ln)
+                self.should_exit = True
+
+            valid, idx = self.validate_list_idx(value.value.child, params[0].value, currNode.ln)
+            if valid:
+                value = value.value.child[idx]
+                return self.extract_value(value)
 
     def honey(self, currNode):
         honey = currNode.copy()
@@ -1243,6 +1271,8 @@ class Interpreter:
         if not value:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to asign to {ptr} doesn't carry a value. Thus you cannot use the object as a value.", honey.ln)
             self.should_exit = True
+        elif value.has_property(OBJECT):
+            honey.add_property(EXTERN)
 
         if sys.virtual_stack.isset(ptr):
             sys.virtual_stack.set_var(honey)
@@ -1363,6 +1393,7 @@ class Interpreter:
     def translate_params_to_lib_format(self, currNode):
         types = self.regular_values
         types.append(LIST)
+        types.append(OBJECT)
         final_params = []
         for p in currNode.params:
             value = None
@@ -1382,8 +1413,11 @@ class Interpreter:
     def translate_return_to_node_format(self, return_value, ln):
         if type(return_value) in [int, float, str, bool]:
             return self.regular_value_to_node(return_value, ln)
-        if isinstance(return_value, tuple) or isinstance(return_value, list):
-            print("SHOULD RETURN HONEYCOMB...")
+        if isinstance(return_value, list) or isinstance(return_value, tuple):
+            final_list = [self.regular_value_to_node(v, ln) for v in list(return_value)]
+            object = node(N_VALUE, ln, [OBJECT], child = final_list)
+            object.value = "[ <object> honeycomb ]"
+            return object
 
     def regular_value_to_node(self, return_value, ln):
         parser = Parser(None)
@@ -1415,7 +1449,10 @@ class Interpreter:
             value = self.extract_value(value)
             return value
         elif value.has_property(TOKEN):
-            return self.tokens(value)
+            token = self.tokens(value)
+            return token
+        elif value.has_property(OBJECT):
+            return value
         elif any(p in self.regular_values for p in value.properties):
             return value
 
@@ -1428,7 +1465,7 @@ class Interpreter:
             return True if value.value == "true" else False
         if value.has_property(STRING):
             return value.value
-        if value.has_property(LIST):
+        if value.has_property(LIST) or value.has_property(OBJECT):
             return [self.extract_lib_value(v) for v in value.child]
 
     def tokens(self, currNode):
@@ -1444,8 +1481,9 @@ class Interpreter:
         elif currNode.has_property(MEADOW):
             self.in_library = True
         elif currNode.has_property(HONEYCOMB):
-            print("(from 'def tokens(...')ENCOUNTERED HONEYCOMB! IMPLEMENT THEM TO USE THEM AS NORMAL VALUES!")
-
+            currNode.value = "[ <object> honeycomb ]"
+            return currNode
+        
     def functionptr(self, currNode):
         if not currNode.value.has_property(PYTHON):
             sys.error_system.create_error(WRONG_TOKEN_TYPE_EXCEPTION, INTERPRETING, "A function pointer was expected. Make sure the provided value of the member points to an extern python function.", currNode.ln)

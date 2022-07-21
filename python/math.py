@@ -1,4 +1,4 @@
-import constants as c
+import src.constants as c
 
 add_arg_count = 2
 add_arg_types = [c.L_NUMBER, c.L_NUMBER]

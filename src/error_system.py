@@ -14,7 +14,7 @@ class ErrorSystem:
         for e in self.errors:
             if e.code in FATAL_ERRORS:
                 exit_program = True
-            print("\n(Error) " + e.get_msg())
+            print("(Error) " + e.get_msg() + "\n")
 
         self.errors = []
         self.execute_exit(exit_program)
@@ -25,7 +25,7 @@ class ErrorSystem:
         for w in self.warnings:
             if w.code in [None]:
                 exit_program = True
-            print("\n(Warning) " + w.get_msg())
+            print("(Warning) " + w.get_msg() + "\n")
 
         self.warnings = []
         self.execute_exit(exit_program)
@@ -37,7 +37,7 @@ class ErrorSystem:
         for s in self.silent:
             if s.code in [None]:
                 exit_program = True
-            print("\n(Silent warning) " + s.get_msg())
+            print("(Silent warning) " + s.get_msg() + "\n")
 
         self.silent = []
         self.execute_exit(exit_program)

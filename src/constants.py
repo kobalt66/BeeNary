@@ -76,6 +76,7 @@ SECTION                 = 0xc30
 LOADED                  = 0xc31
 ALWAYS_TRUE             = 0xc32
 ALWAYS_FALSE            = 0xc33
+OBJECT                  = 0xc34
 
 #####################################################
 # ERROR codes
@@ -109,6 +110,7 @@ INVALID_TYPE_EXCEPTION                  = 0xd25
 INVALID_SECTION_EXCEPTION               = 0xd26
 INVALID_ARGUMENT_EXCEPTION              = 0xd27
 PYTHON_EXCEPTION                        = 0xd28
+MISSING_END_TOKEN_EXCEPTION             = 0xd29
 
 #####################################################
 # WARNING codes
@@ -193,6 +195,7 @@ def get_exclamation_code_str(code):
     if code is INVALID_SECTION_EXCEPTION:               return "INVALID_SECTION_EXCEPTION"
     if code is INVALID_ARGUMENT_EXCEPTION:              return "INVALID_ARGUMENT_EXCEPTION"
     if code is PYTHON_EXCEPTION:                        return "PYTHON_EXCEPTION"
+    if code is MISSING_END_TOKEN_EXCEPTION:             return "MISSING_END_TOKEN_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -262,7 +265,8 @@ def get_node_property_to_str(property):
     if property is SECTION:             return "SECTION"
     if property is LOADED:              return "LOADED"        
     if property is ALWAYS_TRUE:         return "ALWAYS_TRUE"  
-    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE"      
+    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE" 
+    if property is OBJECT:              return "OBJECT"     
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -278,7 +282,7 @@ def get_value_type_to_lib_value_type(type):
     if type in [INT, FLOAT]:            return L_NUMBER
     if type is STRING:                  return L_STRING
     if type is BOOL:                    return L_BOOL  
-    if type is HONEYCOMB:               return L_OBJECT   
+    if type is OBJECT:                  return L_OBJECT   
     if type is LIST:                    return L_LIST
 
 def get_lib_value_type_to_str(type):    
