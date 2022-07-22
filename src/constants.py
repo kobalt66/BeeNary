@@ -140,12 +140,13 @@ SYSTEM                  = 0xf08
 #####################################################
 
 # arg types
-L_NUMBER                = 0xfa01
-L_STRING                = 0xfa02
-L_BOOL                  = 0xfa03
-L_OBJECT                = 0xfa04
-L_LIST                  = 0xfa05
-L_ANY                   = 0xfa06
+L_INT                   = 0xfa01
+L_FLOAT                 = 0xfa02
+L_STRING                = 0xfa03
+L_BOOL                  = 0xfa04
+L_OBJECT                = 0xfa05
+L_LIST                  = 0xfa06
+L_ANY                   = 0xfa07
 
 #####################################################
 # TO STRING functions
@@ -279,14 +280,16 @@ def get_node_property_by_value(str_value):
     if str_value == "hive":             return HIVE  
 
 def get_value_type_to_lib_value_type(type):
-    if type in [INT, FLOAT]:            return L_NUMBER
+    if type is INT:                     return L_INT
+    if type is FLOAT:                   return L_FLOAT
     if type is STRING:                  return L_STRING
     if type is BOOL:                    return L_BOOL  
     if type is OBJECT:                  return L_OBJECT   
     if type is LIST:                    return L_LIST
 
 def get_lib_value_type_to_str(type):    
-    if type is L_NUMBER:                return "NUMBER"
+    if type is L_INT:                   return "INT"
+    if type is L_FLOAT:                 return "FLOAT"
     if type is L_STRING:                return "STRING"
     if type is L_BOOL:                  return "BOOL"
     if type is L_OBJECT:                return "OBJECT"

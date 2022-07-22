@@ -23,7 +23,7 @@ take list 1
 c honey list<0>
 flyout c
 
-:src<"./libs/math.b">:
+:src<"[CURRDIR]/libs/math.b">:
 
 flyout pi
 

@@ -10,10 +10,8 @@ start:
     t honey tuple<>
     tt honey t
     msg honey tt<2>
+    
+    flyout third
 
     give_obj<tt>
-
-    flyout b
-    flyout d
-    flyout msg
 :end:

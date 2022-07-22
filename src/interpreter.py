@@ -1,3 +1,4 @@
+from re import T
 from constants import *
 from classes import *
 import io, os
@@ -686,6 +687,7 @@ class Sortout:
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
+        self.sections = []
         self.unused_variables = [] if not preset_unused_vars else preset_unused_vars
         self.currSection = ""
         self.idx = 0
@@ -806,6 +808,9 @@ class Sortout:
         inside_hive = False
         hive_end = False
         for n in nodes:
+            if n.has_property(SECTION):
+                if not n.value.ptr in self.sections:
+                    self.sections.append(n.value.ptr)
             if n.typeof(N_START):
                 if start_section:
                     sys.error_system.create_error(MULTI_START_EXCEPTION, SORTOUT, "There can only be one start section.", n.ln)
@@ -835,7 +840,6 @@ class Sortout:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
         if hive_start and not hive_end:
             sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
-
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -957,6 +961,8 @@ class Sortout:
         self.Phase3_expr(value)
         if defined and var[1] == "list":
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{currNode.child.ptr}' is already taken by another object.", currNode.ln)
+        elif currNode.child.ptr in self.sections:
+            sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The pointer '{currNode.child.ptr}' is already used by a section.", currNode.ln)
         elif not defined:
             self.unused_variables.append(tuple)
 
@@ -974,7 +980,7 @@ class Sortout:
         defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
         if defined and var[1] == "list" and not currNode.value.params:
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You cannot add a list to a list.", currNode.ln)
-
+        
         self.Phase3_expr(currNode.value)
 
     def Phase3_identifier(self, currNode):
@@ -1004,6 +1010,8 @@ class Sortout:
 
         if defined:
             sys.error_system.create_error(MEMBER_NAME_COLLISION, SORTOUT, f"The name '{currNode.child.ptr}' seems to be already taken by another variable. Change the variable name or the meadow member name.", currNode.ln)
+        elif currNode.child.ptr in self.sections:
+            sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The pointer '{currNode.child.ptr}' is already used by a section.", currNode.ln)
         elif not defined:
             self.unused_variables.append(tuple)
 
@@ -1035,6 +1043,7 @@ class Sortout:
             sys.error_system.script = currNode.value.value
             self.nodes[self.idx].add_property(LOADED)
             sortout = Sortout(currNode.child, True, self.unused_variables)
+            sortout.sections = self.sections
             sortout.Phase1()
             sortout.Phase2()
             sortout.Phase3()
@@ -1302,7 +1311,7 @@ class Interpreter:
             return
         else:
             value = self.extract_value(currNode.value)
-            
+        
         ptr = currNode.child.ptr
         currNode.value = value
 
@@ -1371,7 +1380,7 @@ class Interpreter:
 
         idx = 0
         for p in params:
-            if arg_types[idx] is L_ANY: continue
+            if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
                 p = sys.virtual_stack.get_var(p)

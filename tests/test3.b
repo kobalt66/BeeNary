@@ -1,5 +1,5 @@
 start:
-:src<"./libs/math.b">:
+:src<"[CURRDIR]/libs/math.b">:
 
 :hive:
     honeypot list

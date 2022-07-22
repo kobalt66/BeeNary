@@ -6,8 +6,8 @@ from classes import system
 gettrace = getattr(s, 'gettrace', None)
 if gettrace: 
     if gettrace():
-        code = get_code("tests/test5.b")
-        run(code, "tests/test5.b", "-vs", "", "", "-sw", "", "", "", "", "")
+        code = get_code("tests/graphics.b")
+        run(code, "tests/graphics.b", "-vs", "", "", "-sw", "", "", "", "", "")
         exit(0)
 
 sys = system()
