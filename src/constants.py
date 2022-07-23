@@ -134,6 +134,7 @@ INTERPRETING            = 0xf05
 TERMINAL                = 0xf06
 STACK                   = 0xf07
 SYSTEM                  = 0xf08
+LIBRARY                 = 0xf09
 
 #####################################################
 # LIBRARY stuff (python)
@@ -153,14 +154,15 @@ L_ANY                   = 0xfa07
 #####################################################
 
 def get_exclamation_type_str(type):
-    if type is PARSING:      return "PARSER"
-    if type is SIMPLIFYING:  return "SIMPLIFYING"
-    if type is LEXING:       return "LEXER"
-    if type is SORTOUT:      return "SORTOUT"
-    if type is INTERPRETING: return "INTERPRETER"
-    if type is TERMINAL:     return "TERMINAL"
-    if type is STACK:        return "STACK"
-    if type is SYSTEM:       return "SYSTEM"
+    if type is PARSING:         return "PARSER"
+    if type is SIMPLIFYING:     return "SIMPLIFYING"
+    if type is LEXING:          return "LEXER"
+    if type is SORTOUT:         return "SORTOUT"
+    if type is INTERPRETING:    return "INTERPRETER"
+    if type is TERMINAL:        return "TERMINAL"
+    if type is STACK:           return "STACK"
+    if type is SYSTEM:          return "SYSTEM"
+    if type is LIBRARY:         return "LIBRARY"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  

@@ -675,7 +675,7 @@ class Parser:
 
 
 class Sortout:
-    def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None):
+    def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None, sections = None):
         self.nodes = nodes
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
@@ -687,7 +687,7 @@ class Sortout:
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
-        self.sections = []
+        self.sections = [] if not sections else sections
         self.unused_variables = [] if not preset_unused_vars else preset_unused_vars
         self.currSection = ""
         self.idx = 0
@@ -861,11 +861,11 @@ class Sortout:
         return self.nodes
 
     def Phase3(self):
-        start = sys.virtual_stack.get_var_by_ptr("start")
+        start = sys.virtual_stack.get_var_by_ptr("start") if not self.library else None
         skipped_vars = []
         self.unused_variables.extend([(list[0], list[1], False) if list[1] == "list" else skipped_vars.append(list) for list in self.used_var_names.items()])
-        self.currSection = "start"
-        self.idx = start.idx
+        self.currSection = "start" if start else ""
+        self.idx = start.idx if start else 0
 
         while self.idx < len(self.nodes):
             currNode = self.nodes[self.idx]
@@ -998,7 +998,6 @@ class Sortout:
             else:
                 updated_unused_variables.append(item)
 
-
         if not object_found:
             sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SORTOUT, f"The data object '{currNode.ptr}' is not defined.", currNode.ln)
 
@@ -1042,8 +1041,7 @@ class Sortout:
             script = sys.error_system.script
             sys.error_system.script = currNode.value.value
             self.nodes[self.idx].add_property(LOADED)
-            sortout = Sortout(currNode.child, True, self.unused_variables)
-            sortout.sections = self.sections
+            sortout = Sortout(currNode.child, True, self.unused_variables, sections = self.sections)
             sortout.Phase1()
             sortout.Phase2()
             sortout.Phase3()
@@ -1088,7 +1086,7 @@ class Sortout:
         self.Phase3_identifier(currNode)
         defined, var = self.Phase3_is_defined(currNode.ptr, currNode.ln)
 
-        if var[1] == "list" and len(currNode.params) > 1:
+        if defined and var[1] == "list" and len(currNode.params) > 1:
             sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A list identifier only expects one argument, which is acting as the idx.", currNode.ln)
 
         if currNode.params:
@@ -1249,7 +1247,7 @@ class Interpreter:
 
             final_params = self.translate_params_to_lib_format(currNode)
             return_value = function(final_params)
-            if return_value: return_value = self.translate_return_to_node_format(return_value, currNode.ln)
+            return_value = self.translate_return_to_node_format(return_value, currNode.ln)
 
             return return_value
         elif value.has_property(WAX):
@@ -1430,14 +1428,14 @@ class Interpreter:
 
     def regular_value_to_node(self, return_value, ln):
         parser = Parser(None)
+        if str(return_value) in ["True", "False"]:
+            return parser.boolean(str(return_value).lower(), ln)
         if isinstance(return_value, int):
             return parser.number(T_INT, str(return_value), ln)
         if isinstance(return_value, float):
             return parser.number(T_FLOAT, str(return_value), ln)
         if isinstance(return_value, str):
             return parser.string(str(return_value), ln)
-        if isinstance(return_value, bool):
-            return parser.boolean(str(return_value), ln)
 
     def extract_value(self, value):
         if hasattr(value, "__call__"):
