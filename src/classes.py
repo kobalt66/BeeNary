@@ -1,6 +1,6 @@
 import error_system as e
 import virtual_stack as v
-from constants import IDENTIFIER, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
+from constants import IDENTIFIER, SYSTEM, VARIABLE_NOT_FOUND_EXCEPTION, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
 
 class token:
     def __init__(self, type, str_value, ln, params = None):
@@ -56,7 +56,10 @@ class node:
 
     def get_value_to_str(self):
         if not self.value: return self.ptr
-        if self.value.has_property(IDENTIFIER):
+        
+        if hasattr(self.value, '__call__'):
+            return f"[python_function]: {self.value.__name__}"
+        elif self.value.has_property(IDENTIFIER):
             return self.value.ptr
 
         if self.typeof(N_START):
@@ -106,13 +109,21 @@ class node:
         else:
             return f"NO NODE REPRESENTATION FOUND ({self.ln})"
 
+    def copy(self):
+        n = node(self.type, self.ln, self.properties, self.child, self.value, self.params, self.operators)
+        n.set_ptr(self.ptr)
+        n.idx = self.idx
+        return n
+
 class system:
     def __init__(self, code = "", script = "<terminal>", no_stack = False):
         self.code = code
         self.error_system = e.ErrorSystem(script)
         self.virtual_stack = None
         if not no_stack: self.virtual_stack = v.VirtualStack(script)
-    
+        self.initialized_extern_functions = {}
+        self.stdout = stdout()
+
         self.show_tokens = False
         self.tokens_show_nl = False
         self.tokens_show_space = False
@@ -202,3 +213,28 @@ class system:
         argv10  = argv[10] if len(argv) > 10 else ""
 
         return argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10
+    
+    def init_extern_function(self, name, arg_count, arg_types):
+        self.initialized_extern_functions[name] = (arg_count, arg_types)
+
+    def get_function_arg_count(self, name):
+        if name in self.initialized_extern_functions.keys():
+            return self.initialized_extern_functions[name][0]
+        self.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SYSTEM, f"The function called '{name}' is not initialized.")
+
+    def get_function_arg_types(self, name):
+        if name in self.initialized_extern_functions.keys():
+            return self.initialized_extern_functions[name][1]
+        self.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SYSTEM, f"The function called '{name}' is not initialized.")
+
+class stdout:
+    def __init__(self):
+        self.stash = []
+
+    def write(self, str):
+        self.stash.append(str)
+    
+    def flush(self):
+        for str in self.stash:
+            print(str)
+        self.stash = []

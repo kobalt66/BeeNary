@@ -76,6 +76,7 @@ SECTION                 = 0xc30
 LOADED                  = 0xc31
 ALWAYS_TRUE             = 0xc32
 ALWAYS_FALSE            = 0xc33
+OBJECT                  = 0xc34
 
 #####################################################
 # ERROR codes
@@ -107,6 +108,9 @@ TOO_MANY_ARGUMENTS_EXCEPTION            = 0xd23
 INVALID_OPERATION_EXCEPTION             = 0xd24
 INVALID_TYPE_EXCEPTION                  = 0xd25
 INVALID_SECTION_EXCEPTION               = 0xd26
+INVALID_ARGUMENT_EXCEPTION              = 0xd27
+PYTHON_EXCEPTION                        = 0xd28
+MISSING_END_TOKEN_EXCEPTION             = 0xd29
 
 #####################################################
 # WARNING codes
@@ -129,19 +133,36 @@ SORTOUT                 = 0xf04
 INTERPRETING            = 0xf05
 TERMINAL                = 0xf06
 STACK                   = 0xf07
+SYSTEM                  = 0xf08
+LIBRARY                 = 0xf09
+
+#####################################################
+# LIBRARY stuff (python)
+#####################################################
+
+# arg types
+L_INT                   = 0xfa01
+L_FLOAT                 = 0xfa02
+L_STRING                = 0xfa03
+L_BOOL                  = 0xfa04
+L_OBJECT                = 0xfa05
+L_LIST                  = 0xfa06
+L_ANY                   = 0xfa07
 
 #####################################################
 # TO STRING functions
 #####################################################
 
 def get_exclamation_type_str(type):
-    if type is PARSING:      return "PARSER"
-    if type is SIMPLIFYING:  return "SIMPLIFYING"
-    if type is LEXING:       return "LEXER"
-    if type is SORTOUT:      return "SORTOUT"
-    if type is INTERPRETING: return "INTERPRETER"
-    if type is TERMINAL:     return "TERMINAL"
-    if type is STACK:        return "STACK"
+    if type is PARSING:         return "PARSER"
+    if type is SIMPLIFYING:     return "SIMPLIFYING"
+    if type is LEXING:          return "LEXER"
+    if type is SORTOUT:         return "SORTOUT"
+    if type is INTERPRETING:    return "INTERPRETER"
+    if type is TERMINAL:        return "TERMINAL"
+    if type is STACK:           return "STACK"
+    if type is SYSTEM:          return "SYSTEM"
+    if type is LIBRARY:         return "LIBRARY"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -175,6 +196,9 @@ def get_exclamation_code_str(code):
     if code is INVALID_OPERATION_EXCEPTION:             return "INVALID_OPERATION_EXCEPTION"
     if code is INVALID_TYPE_EXCEPTION:                  return "INVALID_TYPE_EXCEPTION"
     if code is INVALID_SECTION_EXCEPTION:               return "INVALID_SECTION_EXCEPTION"
+    if code is INVALID_ARGUMENT_EXCEPTION:              return "INVALID_ARGUMENT_EXCEPTION"
+    if code is PYTHON_EXCEPTION:                        return "PYTHON_EXCEPTION"
+    if code is MISSING_END_TOKEN_EXCEPTION:             return "MISSING_END_TOKEN_EXCEPTION"
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -244,7 +268,8 @@ def get_node_property_to_str(property):
     if property is SECTION:             return "SECTION"
     if property is LOADED:              return "LOADED"        
     if property is ALWAYS_TRUE:         return "ALWAYS_TRUE"  
-    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE"      
+    if property is ALWAYS_FALSE:        return "ALWAYS_FALSE" 
+    if property is OBJECT:              return "OBJECT"     
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -254,14 +279,31 @@ def get_node_property_by_value(str_value):
     if str_value == "meadow":           return MEADOW      
     if str_value == "end":              return END         
     if str_value == "trace":            return TRACE       
-    if str_value == "hive":             return HIVE        
+    if str_value == "hive":             return HIVE  
+
+def get_value_type_to_lib_value_type(type):
+    if type is INT:                     return L_INT
+    if type is FLOAT:                   return L_FLOAT
+    if type is STRING:                  return L_STRING
+    if type is BOOL:                    return L_BOOL  
+    if type is OBJECT:                  return L_OBJECT   
+    if type is LIST:                    return L_LIST
+
+def get_lib_value_type_to_str(type):    
+    if type is L_INT:                   return "INT"
+    if type is L_FLOAT:                 return "FLOAT"
+    if type is L_STRING:                return "STRING"
+    if type is L_BOOL:                  return "BOOL"
+    if type is L_OBJECT:                return "OBJECT"
+    if type is L_LIST:                  return "LIST"
+    if type is L_ANY:                   return "ANY"
 
 #####################################################
 # INTERPRETER stuff
 #####################################################
 
 IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
-NUMBER_CHARS = '0123456789'
+NUMBER_CHARS = '-0123456789'
 VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#\" '
 KEYWORDS = [
     "true",
@@ -320,5 +362,7 @@ FATAL_ERRORS = [
     TERMINAL_EXCEPTION,
     INVALID_OPERATION_EXCEPTION,
     INVALID_TYPE_EXCEPTION,
-    INVALID_SECTION_EXCEPTION
+    INVALID_SECTION_EXCEPTION,
+    INVALID_ARGUMENT_EXCEPTION,
+    PYTHON_EXCEPTION
 ]

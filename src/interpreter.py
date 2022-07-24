@@ -1,14 +1,17 @@
+from re import T
 from constants import *
 from classes import *
-import io
+import io, os
+import sys as s
 
+s.path.insert(1, os.getcwd())
 
 sys = None
 
 def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
     sys = system(code, argv1)
-    
+
     if argv1 == "-help":
         sys.process_help_flag(argv2)
         exit(0)
@@ -35,6 +38,11 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     sorted_nodes = sortout.Phase1()
     sorted_nodes = sortout.Phase2()
     sorted_nodes = sortout.Phase3()
+    sorted_nodes = sortout.Finish()
+
+    interpreter = Interpreter(sorted_nodes)
+    interpreter.execute()
+    sys.stdout.flush()
 
     if sys.show_tokens:
         print("\n\nTOKENS:")
@@ -59,7 +67,7 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
     
     if sys.show_stack_objects:
         print("\n\nVIRTUAL STACK:")
-        for ptr in sys.virtual_stack.stack:
+        for ptr in sys.virtual_stack.stack.keys():
             str = sys.virtual_stack.stack[ptr].to_str(sys)
             if str: print(str)
         print("\n")
@@ -74,8 +82,11 @@ def get_code(path):
         code = file.read()
         file.close()
         return code
-    except:
-        print("An error occured while reading from a file.")
+    except Exception as e:
+        sys = system("", no_stack = True)
+        sys.error_system.create_error_from_exception(e, PYTHON_EXCEPTION, TERMINAL, -1)
+        sys.error_system.throw_errors()
+
 
 ######################################################################################################
 
@@ -664,7 +675,7 @@ class Parser:
 
 
 class Sortout:
-    def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None):
+    def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None, sections = None):
         self.nodes = nodes
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
@@ -676,6 +687,7 @@ class Sortout:
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
+        self.sections = [] if not sections else sections
         self.unused_variables = [] if not preset_unused_vars else preset_unused_vars
         self.currSection = ""
         self.idx = 0
@@ -699,7 +711,7 @@ class Sortout:
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
                 elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END):
+                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END) and not n.has_property(HONEYCOMB):
                     sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
 
         sys.error_system.throw_errors()
@@ -714,6 +726,7 @@ class Sortout:
             if n.has_property(SRC):
                 params = n.params
                 lib_path = params[0].value
+                lib_path = lib_path.replace("[CURRDIR]", os.getcwd())
                 code = get_code(lib_path)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
@@ -795,6 +808,9 @@ class Sortout:
         inside_hive = False
         hive_end = False
         for n in nodes:
+            if n.has_property(SECTION):
+                if not n.value.ptr in self.sections:
+                    self.sections.append(n.value.ptr)
             if n.typeof(N_START):
                 if start_section:
                     sys.error_system.create_error(MULTI_START_EXCEPTION, SORTOUT, "There can only be one start section.", n.ln)
@@ -825,7 +841,6 @@ class Sortout:
         if hive_start and not hive_end:
             sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
 
-
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
         sys.error_system.throw_silent(sys.show_silent_warnings)
@@ -846,11 +861,11 @@ class Sortout:
         return self.nodes
 
     def Phase3(self):
-        start = sys.virtual_stack.get_var_by_ptr("start")
+        start = sys.virtual_stack.get_var_by_ptr("start") if not self.library else None
         skipped_vars = []
         self.unused_variables.extend([(list[0], list[1], False) if list[1] == "list" else skipped_vars.append(list) for list in self.used_var_names.items()])
-        self.currSection = "start"
-        self.idx = start.idx
+        self.currSection = "start" if start else ""
+        self.idx = start.idx if start else 0
 
         while self.idx < len(self.nodes):
             currNode = self.nodes[self.idx]
@@ -914,18 +929,13 @@ class Sortout:
         if left.has_property(IDENTIFIER): defined_left, var_left = self.Phase3_is_defined(left.ptr, currNode.ln)
         if right.has_property(IDENTIFIER): defined_right, var_right = self.Phase3_is_defined(right.ptr, currNode.ln)
 
-        if not currNode.has_operator("in") and defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list"):
+        if not currNode.has_operator("in") and (defined_left and var_left[1] == "list" and (not defined_right or not var_right[1] == "list") or defined_right and var_right[1] == "list" and (not defined_left or not var_left[1] == "list")):
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "If a component of a condition is an identifier of a list, it can only be compared to another list.", currNode.ln)
-        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and var_right[1] == "list" :
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and var_right[1] == "list":
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "A list cannot be inside a list.", currNode.ln)
-        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and not var_right[1] == "list" :
+        elif currNode.has_operator("in") and defined_left and defined_right and var_left[1] == "list" and not var_right[1] == "list":
             sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "You can only check if a value is in a list.", currNode.ln)
-        elif currNode.has_operator("in") and right.has_property(IDENTIFIER):
-            defined, var = self.Phase3_is_defined(right.ptr, currNode.ln)
-            if defined and not var[1] == "list":
-                sys.error_system.create_error(INVALID_TYPE_EXCEPTION, SORTOUT, "The provided identifier has to be one from a list.", currNode.ln)
-
-
+    
         self.Phase3_expr(left)
         self.Phase3_expr(right)
         self.Phase3_expr(expr, True if currNode.has_property(ALWAYS_TRUE) else False)
@@ -951,11 +961,13 @@ class Sortout:
         self.Phase3_expr(value)
         if defined and var[1] == "list":
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, f"The identifier '{currNode.child.ptr}' is already taken by another object.", currNode.ln)
+        elif currNode.child.ptr in self.sections:
+            sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The pointer '{currNode.child.ptr}' is already used by a section.", currNode.ln)
         elif not defined:
             self.unused_variables.append(tuple)
 
         defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
-        if defined and var[1] == "list":
+        if defined and var[1] == "list" and not currNode.value.params:
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You cannot define a variable with a list.", currNode.ln)
 
     def Phase3_stick(self, currNode):
@@ -966,9 +978,9 @@ class Sortout:
         self.Phase3_expr(currNode.child)
 
         defined, var = self.Phase3_is_defined(currNode.value.ptr, currNode.ln)
-        if defined and var[1] == "list":
+        if defined and var[1] == "list" and not currNode.value.params:
             sys.error_system.create_error(INVALID_LIST_USAGE_EXCEPTION, SORTOUT, "You cannot add a list to a list.", currNode.ln)
-
+        
         self.Phase3_expr(currNode.value)
 
     def Phase3_identifier(self, currNode):
@@ -986,7 +998,6 @@ class Sortout:
             else:
                 updated_unused_variables.append(item)
 
-
         if not object_found:
             sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SORTOUT, f"The data object '{currNode.ptr}' is not defined.", currNode.ln)
 
@@ -998,6 +1009,8 @@ class Sortout:
 
         if defined:
             sys.error_system.create_error(MEMBER_NAME_COLLISION, SORTOUT, f"The name '{currNode.child.ptr}' seems to be already taken by another variable. Change the variable name or the meadow member name.", currNode.ln)
+        elif currNode.child.ptr in self.sections:
+            sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The pointer '{currNode.child.ptr}' is already used by a section.", currNode.ln)
         elif not defined:
             self.unused_variables.append(tuple)
 
@@ -1028,7 +1041,7 @@ class Sortout:
             script = sys.error_system.script
             sys.error_system.script = currNode.value.value
             self.nodes[self.idx].add_property(LOADED)
-            sortout = Sortout(currNode.child, True, self.unused_variables)
+            sortout = Sortout(currNode.child, True, self.unused_variables, sections = self.sections)
             sortout.Phase1()
             sortout.Phase2()
             sortout.Phase3()
@@ -1038,16 +1051,18 @@ class Sortout:
     def Phase3_flyto(self, currNode):
         section_ptr = currNode.value.ptr
         if not section_ptr in sys.virtual_stack.stack.keys():
-            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not defined")
+            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not defined.", currNode.ln)
 
         section = sys.virtual_stack.get_var_by_ptr(section_ptr)
-
-        if not section_ptr in self.used_sections:
-            self.used_sections.append(section_ptr)
-            self.currSection = section_ptr
-            self.idx = section.idx
+        if not section or not section.has_property(SECTION):
+            sys.error_system.create_error(INVALID_SECTION_EXCEPTION, SORTOUT, f"The section '{section_ptr}' is not a valid section.", currNode.ln)
         else:
-            sys.error_system.create_silent(SORTOUT, "There might the chance of an infinite loop...", currNode.ln)
+            if not section_ptr in self.used_sections:
+                self.used_sections.append(section_ptr)
+                self.currSection = section_ptr
+                self.idx = section.idx
+            else:
+                sys.error_system.create_silent(SORTOUT, "There might the chance of an infinite loop...", currNode.ln)
 
     def Phase3_list(self, currNode):
         tuple = (currNode.value.ptr, "list", False)
@@ -1069,6 +1084,11 @@ class Sortout:
 
     def Phase3_extern(self, currNode):
         self.Phase3_identifier(currNode)
+        defined, var = self.Phase3_is_defined(currNode.ptr, currNode.ln)
+
+        if defined and var[1] == "list" and len(currNode.params) > 1:
+            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A list identifier only expects one argument, which is acting as the idx.", currNode.ln)
+
         if currNode.params:
             self.Phase3_params(currNode)
 
@@ -1110,3 +1130,406 @@ class Sortout:
                 updated_list.append(item)
         
         self.unused_variables = updated_list
+
+    def Finish(self):
+        virtual_stack = sys.virtual_stack.stack.copy()
+
+        for item in virtual_stack.items():
+            if item[1].has_property(WAX):
+                sys.virtual_stack.del_var(item[0])
+
+        for n in self.nodes:
+            if n.typeof(N_LIB) and n.has_property(LOADED):
+                n.pop_property(LOADED)
+
+        return self.nodes
+
+
+class Interpreter:
+    def __init__(self, nodes):
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING]
+        self.invalid_expression = [PYTHON, HONEYCOMB]
+        self.regular_values = [INT, FLOAT, BOOL, STRING]
+        self.nodes = nodes
+        self.idx = 0
+        self.should_exit = False
+        self.init_functionptr = False
+        self.in_library = False
+        self.every_data = False
+
+    def execute(self):
+        start = sys.virtual_stack.get_var_by_ptr("start")
+        self.idx = start.idx
+        self.ln = -1
+
+        while self.idx < len(self.nodes):
+            self.idx += 1
+            if self.idx >= len(self.nodes):
+                sys.error_system.create_error(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "The script needs at least one end token so that the program can exit properly.", self.ln)
+                break
+
+            currNode = self.nodes[self.idx]
+            self.ln = currNode.ln
+            
+            if any(p in self.invalid_expression for p in currNode.properties):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, INTERPRETING, "A expression with the properties [" + ' '.join(p in self.invalid_expression for p in currNode.properties) + "] is invalid.", currNode.ln)
+                break
+
+            self.expression(currNode)
+            if self.should_exit: break
+        
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.create_silent(sys.show_silent_warnings)
+
+    def expression(self, currNode):
+        if any(p in self.function_properties for p in currNode.properties):
+            self.functions(currNode)
+        elif currNode.has_property(TOKEN):
+            self.tokens(currNode)
+        elif currNode.has_property(HONEY):
+            self.honey(currNode)
+        elif currNode.has_property(STICK):
+            self.stick(currNode)
+        elif currNode.has_property(HONEYPOT):
+            self.honeypot(currNode)
+        elif currNode.has_property(EXTERN):
+            self.extern(currNode)
+        elif currNode.typeof(N_LIB):
+            if not currNode.has_property(LOADED):
+                self.library(currNode)
+                self.nodes[self.idx].add_property(LOADED)
+
+    def functions(self, currNode):
+        if currNode.has_property(FLYOUT):
+            value = self.extract_value(currNode.value)
+            print(value.value)
+        elif currNode.has_property(FLYTO):
+            section = sys.virtual_stack.get_var(currNode.value)
+            self.idx = section.idx
+        elif currNode.has_property(STING):
+            var = currNode.value
+            sys.virtual_stack.del_var(var)
+        elif currNode.has_property(TAKE):
+            self.take(currNode)
+        elif currNode.has_property(INV):
+            self.inv(currNode)
+
+    def extern(self, currNode):
+        value = sys.virtual_stack.get_var(currNode)
+        params = currNode.params
+
+        if value.has_property(LIST):
+            if not len(params) == 1:
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts one argument, which is the idx.", currNode.ln)
+                self.should_exit = True
+
+            valid, idx = self.validate_list_idx(value.child, params[0].value, currNode.ln)
+            if valid:
+                value = value.child[idx]
+                return self.extract_value(value)
+        elif value.has_property(FUNCTIONPTR):
+            function = value.value
+            func_name = function.__name__
+            arg_count = sys.get_function_arg_count(func_name)
+
+            if len(params) < arg_count:
+                sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
+                self.should_exit = True
+                return None
+            elif len(params) > arg_count:
+                sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
+                self.should_exit = True
+                return None
+
+            check = self.validate_arg_types(func_name, params, currNode.ln)
+            if not check: return None
+
+            final_params = self.translate_params_to_lib_format(currNode)
+            return_value = function(final_params)
+            return_value = self.translate_return_to_node_format(return_value, currNode.ln)
+
+            return return_value
+        elif value.has_property(WAX):
+            value = self.extract_value(value)
+            if not len(params) == len(value.params):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The honeycomb identifier expects {len(value.params)} argument.", currNode.ln)
+                self.should_exit = True
+            
+            final_params = [self.extract_value(v) for v in currNode.params]
+            final_params = [self.extract_lib_value(v) for v in final_params]
+            return self.translate_return_to_node_format(final_params, currNode.ln)
+        elif value.value and value.value.has_property(OBJECT):
+            if not len(params) == 1:
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "An honeycomb identifier only excepts one argument, which is the idx.", currNode.ln)
+                self.should_exit = True
+
+            valid, idx = self.validate_list_idx(value.value.child, params[0].value, currNode.ln)
+            if valid:
+                value = value.value.child[idx]
+                return self.extract_value(value)
+
+    def honey(self, currNode):
+        honey = currNode.copy()
+        value = self.extract_value(honey.value)
+        ptr = honey.child.ptr
+        honey.value = value
+
+        if not value:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to asign to {ptr} doesn't carry a value. Thus you cannot use the object as a value.", honey.ln)
+            self.should_exit = True
+        elif value.has_property(OBJECT):
+            honey.add_property(EXTERN)
+
+        if sys.virtual_stack.isset(ptr):
+            sys.virtual_stack.set_var(honey)
+        else:
+            sys.virtual_stack.init_var(honey)
+
+    def stick(self, currNode):
+        value = self.extract_value(currNode.value)
+        ptr = currNode.child.ptr
+        currNode.value = value
+        sys.virtual_stack.stack[ptr].child.append(value)
+
+    def wax(self, currNode):
+        value = None
+        if self.init_functionptr:
+            if not currNode.value.has_property(PYTHON):
+                sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, INTERPRETING, "This member is initialized as a function pointer. It can only hold the python-token.", currNode.ln)
+                self.should_exit = True
+                return
+
+            value = self.functionptr(currNode)
+            currNode.add_property(FUNCTIONPTR)
+            self.init_functionptr = False
+        elif not self.init_functionptr and currNode.value.has_property(PYTHON):
+            sys.error_system.create_error(INVALID_MEMBER_VALUE_EXCEPTION, INTERPRETING, "Did not expect a function pointer! First the member has to be initialized as a function pointer via the functionptr-token.", currNode.ln)
+            self.should_exit = True
+            return
+        else:
+            value = self.extract_value(currNode.value)
+        
+        ptr = currNode.child.ptr
+        currNode.value = value
+
+        if sys.virtual_stack.isset(ptr):
+            sys.virtual_stack.set_var(currNode)
+        else:
+            sys.virtual_stack.init_var(currNode)
+
+    def honeypot(self, currNode):
+        ptr = currNode.value.ptr
+        currNode.child = []
+        sys.virtual_stack.init_var(currNode)
+
+    def take(self, currNode):
+        list = sys.virtual_stack.get_var(currNode.child)
+
+        valid, idx = self.validate_list_idx(list.child, currNode.value.value, currNode.ln)
+        if valid:
+            del list.child[idx]
+            sys.virtual_stack.set_var(list)
+
+    def inv(self, currNode):
+        not_condition = False
+        if currNode.has_operator("not"):
+            op_count = currNode.operator_count("not")
+            not_condition = False if (op_count % 2) == 0 else True
+
+        left = currNode.child[0]
+        right = currNode.child[1]
+
+        self.every_data = True
+        value_left = self.extract_lib_value(self.extract_value(left))
+        value_right = self.extract_lib_value(self.extract_value(right))
+        self.every_data = False
+
+        if currNode.has_operator("is"):
+            if not_condition:
+                if not value_left == value_right:
+                    self.expression(currNode.value)
+            else:
+                if value_left == value_right:
+                    self.expression(currNode.value)
+        elif currNode.has_operator("in"):
+            if not_condition:
+                if not any(item is value_left for item in value_right):
+                    self.expression(currNode.value)
+            else:
+                if any(item is value_left for item in value_right):
+                    self.expression(currNode.value)
+
+    def validate_list_idx(self, list, idx_value, ln):
+        idx = -1
+        try: idx = int(idx_value) 
+        except Exception as e:
+            sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts a number as it's parameter.", ln)
+            self.should_exit = True
+        
+        if idx > (len(list) - 1) or idx < 0:
+            sys.error_system.create_error(INDEX_OUT_OF_RANGE_EXCEPTION, INTERPRETING, "The idx was outside the range of the list you tried to access.", ln)
+            self.should_exit = True
+        
+        return not self.should_exit, idx
+
+    def validate_arg_types(self, func_name, params, ln):
+        arg_types = sys.get_function_arg_types(func_name)
+
+        idx = 0
+        for p in params:
+            if arg_types[idx] == L_ANY: continue
+
+            if p.has_property(IDENTIFIER):
+                p = sys.virtual_stack.get_var(p)
+                p = self.extract_value(p)
+
+            param_types = []
+            for property in p.properties:
+                type = get_value_type_to_lib_value_type(property)
+                if type: param_types.append(type)
+
+            if not any(type == arg_types[idx] for type in param_types):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                self.should_exit = True
+
+            idx += 1
+        
+        return not self.should_exit
+
+    def translate_params_to_lib_format(self, currNode):
+        types = self.regular_values
+        types.append(LIST)
+        types.append(OBJECT)
+        final_params = []
+        for p in currNode.params:
+            value = None
+            if p.has_property(IDENTIFIER):
+                value = sys.virtual_stack.get_var(p)
+            else:
+                value = self.extract_value(p)
+            
+            if any(p in types for p in value.properties):
+                final_params.append(self.extract_lib_value(value))
+            else:
+                value = self.extract_value(value)
+                final_params.append(self.extract_lib_value(value))
+
+        return final_params
+
+    def translate_return_to_node_format(self, return_value, ln):
+        if type(return_value) in [int, float, str, bool]:
+            return self.regular_value_to_node(return_value, ln)
+        if isinstance(return_value, list) or isinstance(return_value, tuple):
+            final_list = [self.regular_value_to_node(v, ln) for v in list(return_value)]
+            object = node(N_VALUE, ln, [OBJECT], child = final_list)
+            object.value = "[ <object> honeycomb ]"
+            return object
+
+    def regular_value_to_node(self, return_value, ln):
+        parser = Parser(None)
+        if str(return_value) in ["True", "False"]:
+            return parser.boolean(str(return_value).lower(), ln)
+        if isinstance(return_value, int):
+            return parser.number(T_INT, str(return_value), ln)
+        if isinstance(return_value, float):
+            return parser.number(T_FLOAT, str(return_value), ln)
+        if isinstance(return_value, str):
+            return parser.string(str(return_value), ln)
+
+    def extract_value(self, value):
+        if hasattr(value, "__call__"):
+            return Parser(None).string(f"{value.__name__}: [ <object> function ]", -1)
+
+        if value.has_property(HONEY):
+            return value.value
+        elif value.has_property(HONEYPOT):
+            if not value.params and not self.every_data:
+                return Parser(None).string(f"{value.value.ptr}: [ <object> honeypot ]", value.ln)
+            return value
+        elif value.has_property(EXTERN):
+            return self.extern(value)
+        elif value.has_property(WAX):
+            return self.extract_value(value.value)
+        elif value.has_property(IDENTIFIER):
+            value = sys.virtual_stack.get_var(value)
+            value = self.extract_value(value)
+            return value
+        elif value.has_property(TOKEN):
+            token = self.tokens(value)
+            return token
+        elif value.has_property(OBJECT):
+            return value
+        elif any(p in self.regular_values for p in value.properties):
+            return value
+
+    def extract_lib_value(self, value):
+        if value.has_property(INT):
+            return int(value.value)
+        if value.has_property(FLOAT):
+            return float(value.value)
+        if value.has_property(BOOL):
+            return True if value.value == "true" else False
+        if value.has_property(STRING):
+            return value.value
+        if value.has_property(LIST) or value.has_property(OBJECT):
+            return [self.extract_lib_value(v) for v in value.child]
+
+    def tokens(self, currNode):
+        if currNode.typeof(N_END):
+            self.should_exit = True
+            if currNode.params:
+                msg = currNode.params[0].value
+                print(msg)
+        elif currNode.has_property(TRACE):
+            print(f"[INTERPRETER] executing line {self.ln}...")
+        elif currNode.has_property(FUNCTIONPTR):
+            self.init_functionptr = True
+        elif currNode.has_property(MEADOW):
+            self.in_library = True
+        elif currNode.has_property(HONEYCOMB):
+            currNode.value = "[ <object> honeycomb ]"
+            return currNode
+        
+    def functionptr(self, currNode):
+        if not currNode.value.has_property(PYTHON):
+            sys.error_system.create_error(WRONG_TOKEN_TYPE_EXCEPTION, INTERPRETING, "A function pointer was expected. Make sure the provided value of the member points to an extern python function.", currNode.ln)
+
+        try:
+            python_module = currNode.value.params[0].value
+            sub_modules = python_module.split('.')
+            del sub_modules[0]
+
+            module = __import__(python_module)
+            for sub in sub_modules:
+                module = getattr(module, sub)
+
+            function = getattr(module, currNode.child.ptr)
+            arg_count = getattr(module, f"{currNode.child.ptr}_arg_count")
+            arg_types = getattr(module, f"{currNode.child.ptr}_arg_types")
+            sys.init_extern_function(currNode.child.ptr, arg_count, arg_types)
+            return function
+        except Exception as e:
+            sys.error_system.create_error_from_exception(e, PYTHON_EXCEPTION, INTERPRETING, currNode.ln)
+
+    def library(self, currNode):
+        script = sys.error_system.script
+        sys.error_system.script = currNode.value.value
+
+        self.init_functionptr = False
+        for member in currNode.child:
+            if member.has_property(WAX):
+                self.wax(member)
+            elif member.has_property(PYTHON) or member.has_property(HONEYCOMB):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, INTERPRETING, "Tokens with the properties [PYTHON | HONEYCOMB] can only act as a member value and cannot act as an expression.", currNode.ln)
+                self.should_exit = True
+                break
+            elif member.has_property(TOKEN):
+                self.tokens(member)
+        
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
+        sys.error_system.script = script
+        self.in_library = False
+            
