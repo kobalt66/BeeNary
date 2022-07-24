@@ -110,7 +110,6 @@ INVALID_TYPE_EXCEPTION                  = 0xd25
 INVALID_SECTION_EXCEPTION               = 0xd26
 INVALID_ARGUMENT_EXCEPTION              = 0xd27
 PYTHON_EXCEPTION                        = 0xd28
-MISSING_END_TOKEN_EXCEPTION             = 0xd29
 
 #####################################################
 # WARNING codes
@@ -121,6 +120,7 @@ UNUSED_VARIABLE                         = 0xe02
 MEMBER_NAME_COLLISION                   = 0xe03
 INFINITE_LOOP                           = 0xe04
 USELESS_INV_EXPRESSION                  = 0xe05
+MISSING_END_TOKEN_EXCEPTION             = 0xe06
 
 #####################################################
 # WARNING codes
@@ -148,6 +148,7 @@ L_BOOL                  = 0xfa04
 L_OBJECT                = 0xfa05
 L_LIST                  = 0xfa06
 L_ANY                   = 0xfa07
+L_NUMBER                = 0xfa08
 
 #####################################################
 # TO STRING functions
@@ -290,13 +291,14 @@ def get_value_type_to_lib_value_type(type):
     if type is LIST:                    return L_LIST
 
 def get_lib_value_type_to_str(type):    
-    if type is L_INT:                   return "INT"
-    if type is L_FLOAT:                 return "FLOAT"
-    if type is L_STRING:                return "STRING"
-    if type is L_BOOL:                  return "BOOL"
-    if type is L_OBJECT:                return "OBJECT"
-    if type is L_LIST:                  return "LIST"
-    if type is L_ANY:                   return "ANY"
+    if type == L_NUMBER:                return "NUMBER"
+    if type == L_INT:                   return "INT"
+    if type == L_FLOAT:                 return "FLOAT"
+    if type == L_STRING:                return "STRING"
+    if type == L_BOOL:                  return "BOOL"
+    if type == L_OBJECT:                return "OBJECT"
+    if type == L_LIST:                  return "LIST"
+    if type == L_ANY:                   return "ANY"
 
 #####################################################
 # INTERPRETER stuff

@@ -837,9 +837,9 @@ class Sortout:
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
 
         if not start_section and not self.library:
-            sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
+            sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", 1)
         if hive_start and not hive_end:
-            sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
+            sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.")
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -1165,7 +1165,7 @@ class Interpreter:
         while self.idx < len(self.nodes):
             self.idx += 1
             if self.idx >= len(self.nodes):
-                sys.error_system.create_error(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "The script needs at least one end token so that the program can exit properly.", self.ln)
+                sys.error_system.create_warning(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "Unexpected eof! Use an end token to exit properly.", self.ln)
                 break
 
             currNode = self.nodes[self.idx]
@@ -1224,7 +1224,7 @@ class Interpreter:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts one argument, which is the idx.", currNode.ln)
                 self.should_exit = True
 
-            valid, idx = self.validate_list_idx(value.child, params[0].value, currNode.ln)
+            valid, idx = self.validate_list_idx(value.child, params[0], currNode.ln)
             if valid:
                 value = value.child[idx]
                 return self.extract_value(value)
@@ -1264,7 +1264,7 @@ class Interpreter:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "An honeycomb identifier only excepts one argument, which is the idx.", currNode.ln)
                 self.should_exit = True
 
-            valid, idx = self.validate_list_idx(value.value.child, params[0].value, currNode.ln)
+            valid, idx = self.validate_list_idx(value.value.child, params[0], currNode.ln)
             if valid:
                 value = value.value.child[idx]
                 return self.extract_value(value)
@@ -1360,8 +1360,9 @@ class Interpreter:
                 if any(item is value_left for item in value_right):
                     self.expression(currNode.value)
 
-    def validate_list_idx(self, list, idx_value, ln):
+    def validate_list_idx(self, list, param, ln):
         idx = -1
+        idx_value = param.value if not param.has_property(IDENTIFIER) else self.extract_value(param).value
         try: idx = int(idx_value) 
         except Exception as e:
             sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts a number as it's parameter.", ln)
@@ -1389,9 +1390,14 @@ class Interpreter:
                 type = get_value_type_to_lib_value_type(property)
                 if type: param_types.append(type)
 
-            if not any(type == arg_types[idx] for type in param_types):
-                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
-                self.should_exit = True
+            if arg_types[idx] == L_NUMBER:
+                if not any(type in [L_INT, L_FLOAT] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                    self.should_exit = True
+            else:
+                if not any(type == arg_types[idx] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                    self.should_exit = True
 
             idx += 1
         

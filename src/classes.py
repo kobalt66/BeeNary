@@ -148,6 +148,10 @@ class system:
             "-vs" : "-vs\tToggle virtual stack printing."
         }
 
+    def cast_all_exceptions(self):
+        self.error_system.throw_errors()
+        self.error_system.throw_warnings()
+
     def process_help_flag(self, argv2 = None):
         if not argv2:
             print("\n\n" + '-' * 50)
