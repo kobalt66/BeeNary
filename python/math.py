@@ -495,3 +495,167 @@ def norm(params):
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False
+
+
+mat_twoXtwo_identity_arg_count = 0
+mat_twoXtwo_identity_arg_types = []
+def mat_twoXtwo_identity(params):
+    try: return [1, 0, 0, 1]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_twoXtwo_arg_count = 4
+mat_twoXtwo_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat_twoXtwo(params):
+    try:
+        a1, a2 = params[0], params[1]
+        b1, b2 = params[3], params[4] 
+        return [a1, a2, b1, b2]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_twoXthree_arg_count = 6
+mat_twoXthree_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat_twoXthree(params):
+    try:
+        a1, a2, a3 = params[0], params[1], params[2]
+        b1, b2, b3 = params[3], params[4], params[5]
+        return [a1, a2, a3, b1, b2, b3]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_threeXthree_identity_arg_count = 0
+mat_threeXthree_identity_arg_types = []
+def mat_threeXthree_identity(params):
+    try: return [1, 0, 0, 0, 1, 0, 0, 0, 1]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_threeXthree_arg_count = 9
+mat_threeXthree_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat_threeXthree(params):
+    try:
+        a1, a2, a3 = params[0], params[1], params[2]
+        b1, b2, b3 = params[3], params[4], params[5]
+        c1, c2, c3 = params[6], params[7], params[8]
+        return [a1, a2, a3, b1, b2, b3, c1, c2, c3]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_threeXfour_arg_count = 12
+mat_threeXfour_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat_threeXfour(params):
+    try:
+        a1, a2, a3, a4 = params[0],  params[1], params[2],  params[3]
+        b1, b2, b3, b4 = params[4],  params[5], params[6],  params[7]
+        c1, c2, c3, c4 = params[8],  params[9], params[10], params[11]
+        return [a1, a2, a3, a4, b1, b2, b3, b4, c1, c2, c3, c4]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_fourXfour_identity_arg_count = 0
+mat_fourXfour_identity_arg_types = []
+def mat_fourXfour_identity(params):
+    try: return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+mat_fourXfour_arg_count = 16
+mat_fourXfour_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat_fourXfour(params):
+    try:
+        a1, a2, a3, a4 = params[0],  params[1],  params[2],  params[3]
+        b1, b2, b3, b4 = params[4],  params[5],  params[6],  params[7]
+        c1, c2, c3, c4 = params[8],  params[9],  params[10], params[11]
+        d1, d2, d3, d4 = params[12], params[13], params[14], params[15]
+        return [a1, a2, a3, a4, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+flyout_matrix_arg_count = 1
+flyout_matrix_arg_types = [c.L_OBJECT]
+def flyout_matrix(params):
+    try:
+        mat = params[0]
+
+        string = ""
+        if len(mat) == 4:
+            for i in range(4):
+                if i % 2 == 0:
+                    string += "\n"
+                string += f"{mat[i]} "
+            print(string)
+            return
+        if len(mat) == 6:
+            for i in range(6):
+                if i % 3 == 0:
+                    string += "\n"
+                string += f"{mat[i]} "
+            print(string)
+            return
+        if len(mat) == 9:
+            for i in range(9):
+                if i % 3 == 0:
+                    string += "\n"
+                string += f"{mat[i]} "
+            print(string)
+            return
+        if len(mat) == 12:
+            for i in range(12):
+                if i % 4 == 0:
+                    string += "\n"
+                string += f"{mat[i]} "
+            print(string)
+            return
+        if len(mat) == 16:
+            for i in range(16):
+                if i % 4 == 0:
+                    string += "\n"
+                string += f"{mat[i]} "
+            print(string)
+            return
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+
+multiply_matrices_arg_count = 2
+multiply_matrices_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def multiply_matrices(params):
+    try:
+        A = params[0]
+        B = params[1]
+
+        result = []
+        if len(B) == 4:     result = [0, 0, 0, 0]
+        if len(B) == 6:     result = [0, 0, 0, 0, 0, 0]
+        if len(B) == 9:     result = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        if len(B) == 12:    result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        if len(B) == 16:    result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        return False
+        for i in range(len(A)):         # iterating by row of A
+            for j in range(len(B)):     # iterating by column by B
+                for k in range(len(B)): # iterating by rows of B
+                    result[i * j] += A[i * k] * B[k * j]
+
+        return result
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False                    

@@ -37,8 +37,13 @@ start:
 
 #    divbyzero honey div<1, 0>
 
-    a honey tan<1.5596856728972892>
-    a honey int<a>
-    flyout a
+#    a honey tan<1.5596856728972892>
+#    a honey int<a>
+#    flyout a
+    
+    matA honey mat_fourXfour_identity<>
+    matB honey mat_fourXfour<1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16>
+    res honey multiply_matrices<matA, matB>
+    #flyout_matrix<res>
 
 :end:

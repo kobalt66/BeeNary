@@ -127,3 +127,33 @@ wax mag :python<"python.math">:
 wax norm :python<"python.math">:
 
 ########################## Matrix math ##########################
+
+:functionptr:
+wax mat_twoXtwo_identity :python<"python.math">:
+
+:functionptr:
+wax mat_twoXtwo :python<"python.math">:
+
+:functionptr:
+wax mat_twoXthree :python<"python.math">:
+
+:functionptr:
+wax mat_threeXthree_identity :python<"python.math">:
+
+:functionptr:
+wax mat_threeXthree :python<"python.math">:
+
+:functionptr:
+wax mat_threeXfour :python<"python.math">:
+
+:functionptr:
+wax mat_fourXfour_identity :python<"python.math">:
+
+:functionptr:
+wax mat_fourXfour :python<"python.math">:
+
+:functionptr:
+wax flyout_matrix :python<"python.math">:
+
+:functionptr:
+wax multiply_matrices :python<"python.math">:

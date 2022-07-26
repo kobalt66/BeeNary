@@ -177,14 +177,14 @@ class Lexer:
 
     def comment(self):
         self.advance()
+        condition = lambda: True if not self.currChar == "\n" else False
+        if self.currChar == "\n": return token(T_COMMENT, '', self.ln)
+    
         str_value = self.currChar
-        condition = lambda: True if self.currChar != "\n" else False 
-
         while self.advance_condition(condition):
             str_value += self.currChar
 
-        type = T_COMMENT
-        return token(type, str_value, self.ln)
+        return token(T_COMMENT, str_value, self.ln)
     
     def string(self):
         self.advance()
