@@ -156,4 +156,10 @@ wax mat_fourXfour :python<"python.math">:
 wax flyout_matrix :python<"python.math">:
 
 :functionptr:
-wax multiply_matrices :python<"python.math">:
+wax add_matrices :python<"python.math">:
+
+:functionptr:
+wax sub_matrices :python<"python.math">:
+
+:functionptr:
+wax mul_matrices :python<"python.math">:

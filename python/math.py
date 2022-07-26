@@ -511,7 +511,7 @@ mat_twoXtwo_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
 def mat_twoXtwo(params):
     try:
         a1, a2 = params[0], params[1]
-        b1, b2 = params[3], params[4] 
+        b1, b2 = params[2], params[3] 
         return [a1, a2, b1, b2]
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
@@ -568,7 +568,7 @@ def mat_threeXfour(params):
 mat_fourXfour_identity_arg_count = 0
 mat_fourXfour_identity_arg_types = []
 def mat_fourXfour_identity(params):
-    try: return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]
+    try: return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
@@ -599,63 +599,125 @@ def flyout_matrix(params):
             for i in range(4):
                 if i % 2 == 0:
                     string += "\n"
-                string += f"{mat[i]} "
+                string += f"{mat[i]}\t"
             print(string)
             return
         if len(mat) == 6:
             for i in range(6):
                 if i % 3 == 0:
                     string += "\n"
-                string += f"{mat[i]} "
+                string += f"{mat[i]}\t"
             print(string)
             return
         if len(mat) == 9:
             for i in range(9):
                 if i % 3 == 0:
                     string += "\n"
-                string += f"{mat[i]} "
+                string += f"{mat[i]}\t"
             print(string)
             return
         if len(mat) == 12:
             for i in range(12):
                 if i % 4 == 0:
                     string += "\n"
-                string += f"{mat[i]} "
+                string += f"{mat[i]}\t"
             print(string)
             return
         if len(mat) == 16:
             for i in range(16):
                 if i % 4 == 0:
                     string += "\n"
-                string += f"{mat[i]} "
+                string += f"{mat[i]}\t"
             print(string)
             return
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
 
-multiply_matrices_arg_count = 2
-multiply_matrices_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def multiply_matrices(params):
+def get_matrix_row_column_size(mat):
+    if len(mat) == 4:     return 2, 2 
+    if len(mat) == 6:     return 2, 3 
+    if len(mat) == 9:     return 3, 3 
+    if len(mat) == 12:    return 3, 4  
+    if len(mat) == 16:    return 4, 4
+def convert_matrix_for_b(mat):
+    result = []
+    for row in mat:
+        for e in row:
+            result.append(e)
+    return result
+def convert_matrix_for_op(mat, size):
+    result  = []
+    new_row = []
+    count   = 0
+    for e in mat:
+        new_row.append(e)
+        count += 1
+
+        if count % size[0] == 0:
+            result.append(new_row)
+            new_row = []
+
+    return result
+
+mul_matrices_arg_count = 2
+mul_matrices_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def mul_matrices(params):
     try:
-        A = params[0]
-        B = params[1]
+        matA = params[0]
+        matB = params[1]
 
-        result = []
-        if len(B) == 4:     result = [0, 0, 0, 0]
-        if len(B) == 6:     result = [0, 0, 0, 0, 0, 0]
-        if len(B) == 9:     result = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-        if len(B) == 12:    result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        if len(B) == 16:    result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        rowA, columnA = get_matrix_row_column_size(matA)
+        rowB, columnB = get_matrix_row_column_size(matB)
+        A = convert_matrix_for_op(matA, (rowA, columnA))
+        B = convert_matrix_for_op(matB, (rowB, columnB))
 
-        return False
-        for i in range(len(A)):         # iterating by row of A
-            for j in range(len(B)):     # iterating by column by B
-                for k in range(len(B)): # iterating by rows of B
-                    result[i * j] += A[i * k] * B[k * j]
+        result = [[sum(a * b for a, b in zip(A_row, B_col))
+                    for B_col in zip(*B)]
+                        for A_row in A]
 
-        return result
+        return convert_matrix_for_b(result)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
-        return False                    
+        return False
+
+add_matrices_arg_count = 2
+add_matrices_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def add_matrices(params):
+    try:
+        matA = params[0]
+        matB = params[1]
+
+        rowA, columnA = get_matrix_row_column_size(matA)
+        rowB, columnB = get_matrix_row_column_size(matB)
+        A = convert_matrix_for_op(matA, (rowA, columnA))
+        B = convert_matrix_for_op(matB, (rowB, columnB))
+
+        result = [[A[i][j] + B[i][j]  for j in range(len(B[0]))] for i in range(len(A))]
+
+        return convert_matrix_for_b(result)
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+sub_matrices_arg_count = 2
+sub_matrices_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def sub_matrices(params):
+    try:
+        matA = params[0]
+        matB = params[1]
+
+        rowA, columnA = get_matrix_row_column_size(matA)
+        rowB, columnB = get_matrix_row_column_size(matB)
+        A = convert_matrix_for_op(matA, (rowA, columnA))
+        B = convert_matrix_for_op(matB, (rowB, columnB))
+
+        result = [[A[i][j] - B[i][j]  for j in range(len(B[0]))] for i in range(len(A))]
+
+        return convert_matrix_for_b(result)
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False

@@ -41,9 +41,9 @@ start:
 #    a honey int<a>
 #    flyout a
     
-    matA honey mat_fourXfour_identity<>
-    matB honey mat_fourXfour<1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16>
-    res honey multiply_matrices<matA, matB>
-    #flyout_matrix<res>
+    matA honey mat_twoXtwo<123, 234, 98, 1>
+    matB honey mat_twoXthree<1, 2, 3, 4, 5, 6>
+    res honey add_matrices<matA, matB>
+    flyout_matrix<res>
 
 :end:
