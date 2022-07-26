@@ -496,6 +496,15 @@ def norm(params):
         sys.cast_all_exceptions()
         return False
 
+flyout_vector_arg_count = 1
+flyout_vector_arg_types = [c.L_OBJECT]
+def flyout_vector(params):
+    try:
+        vec = params[0]
+        [print(e) for e in vec]
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
 
 mat_twoXtwo_identity_arg_count = 0
 mat_twoXtwo_identity_arg_types = []

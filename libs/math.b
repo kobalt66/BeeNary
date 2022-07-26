@@ -126,6 +126,9 @@ wax mag :python<"python.math">:
 :functionptr:
 wax norm :python<"python.math">:
 
+:functionptr:
+wax flyout_vector :python<"python.math">:
+
 ########################## Matrix math ##########################
 
 :functionptr:
