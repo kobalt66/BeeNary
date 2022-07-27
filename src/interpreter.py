@@ -164,7 +164,7 @@ class Lexer:
 
     def word(self):
         str_value = self.currChar
-        condition = lambda: True if self.currChar in IDENTIFIER_CHARS else False
+        condition = lambda: True if self.currChar in IDENTIFIER_CHARS + NUMBER_CHARS else False
 
         while self.advance_condition(condition):
             str_value += self.currChar
@@ -286,7 +286,23 @@ class Lexer:
             sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
 
         return token_list
-    
+
+    def simplify_identifier_arg(self, token_list, idx):
+        try:
+            identifier = token_list[idx]
+            followed_by = token_list[idx + 1]
+
+            if followed_by.typeof(T_LT):
+                type = T_EXTERN_FUNCTION
+                token_list, params = self.simplify_params(token_list, idx + 1)
+                new_token = token(type, identifier.str_value, identifier.ln, params)
+
+                token_list[idx] = new_token
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
+
+        return token_list
+
     def simplify_params(self, token_list, idx):
         currToken = token_list[idx]
         if not currToken.typeof(T_LT):
@@ -317,7 +333,12 @@ class Lexer:
                     sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"Expected '>' instead of '{param_token.str_value}'.", param_token.ln)
                 break
 
-            if param_token.type in [T_IDENTIFIER, T_INT, T_FLOAT, T_STRING, T_BOOL]:
+            if param_token.typeof(T_IDENTIFIER):
+                token_list = self.simplify_identifier_arg(token_list, idx + 1 + param_idx)
+                param_token = token_list[idx + 1 + param_idx]
+                params.append(param_token)
+                more_params = False
+            elif param_token.type in [T_INT, T_FLOAT, T_STRING, T_BOOL]:
                 params.append(param_token)
                 more_params = False
             elif not param_token.type in [T_COMMA, T_WHITESPACE]:
@@ -348,10 +369,10 @@ class Parser:
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
         self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL, TAKE]
-        self.inv_condition_types    = [N_VALUE]
-        self.inv_expr_properties    = [BUILTIN]
+        self.inv_condition_types    = [N_VALUE, N_FUNCTION]
+        self.inv_expr_properties    = [BUILTIN, EXTERN]
         self.valid_operators        = ["is", "not", "in"]
-        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
+        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL, EXTERN]
 
         self.node_list = []
         self.idx = 0
@@ -398,7 +419,7 @@ class Parser:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
             elif currToken.typeof(T_EXTERN_FUNCTION):
-                return self.extern_function(tokens)
+                return self.extern_function(tokens, token)
             elif currToken.typeof(T_STRING):
                 return self.string(currToken.str_value, currToken.ln)
             elif currToken.type in [T_INT, T_FLOAT]:
@@ -456,9 +477,9 @@ class Parser:
         properties.append(get_node_property_by_value(token.str_value))
         return node(type, token.ln, properties, params = params )
 
-    def extern_function(self, tokens):
+    def extern_function(self, tokens, token = None):
         try:
-            function = tokens[self.idx]
+            function = tokens[self.idx] if not token else token
             params = self.params(function)
             properties = [EXTERN, IDENTIFIER]
             
@@ -538,7 +559,7 @@ class Parser:
 
             self.idx += 1
             value = self.expr(tokens)
-            if not value or not value.typeof(N_VALUE):
+            if not value or not value.type in [N_VALUE, N_FUNCTION]:
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a value (string, number,...).", flyout.ln)
 
             properties = [BUILTIN, FLYOUT]
@@ -1094,7 +1115,7 @@ class Sortout:
 
     def Phase3_params(self, currNode):
         for param in currNode.params:
-            if any (p in self.tokens_only_string_args for p in currNode.properties):
+            if any(p in self.tokens_only_string_args for p in currNode.properties):
                 if not currNode.params[0].has_property(STRING):
                     sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] can only have one string message argument.", currNode.ln)
             elif currNode.has_property(HONEYCOMB):
@@ -1203,7 +1224,10 @@ class Interpreter:
     def functions(self, currNode):
         if currNode.has_property(FLYOUT):
             value = self.extract_value(currNode.value)
-            print(value.value)
+            if not value:
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to flyout to doesn't carry a value. Thus you cannot use the object as a value.", currNode.ln)
+                self.should_exit = True
+            else: print(value.value)
         elif currNode.has_property(FLYTO):
             section = sys.virtual_stack.get_var(currNode.value)
             self.idx = section.idx
@@ -1382,8 +1406,11 @@ class Interpreter:
             if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
-                p = sys.virtual_stack.get_var(p)
-                p = self.extract_value(p)
+                if p.has_property(EXTERN):
+                    p = self.extract_value(p)
+                else:
+                    p = sys.virtual_stack.get_var(p)
+                    p = self.extract_value(p)
 
             param_types = []
             for property in p.properties:
@@ -1407,11 +1434,15 @@ class Interpreter:
         types = self.regular_values
         types.append(LIST)
         types.append(OBJECT)
+        types
         final_params = []
         for p in currNode.params:
             value = None
             if p.has_property(IDENTIFIER):
-                value = sys.virtual_stack.get_var(p)
+                if p.has_property(EXTERN):
+                    value = self.extract_value(p)
+                else:
+                    value = sys.virtual_stack.get_var(p)
             else:
                 value = self.extract_value(p)
             

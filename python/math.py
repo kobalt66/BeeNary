@@ -233,9 +233,9 @@ def arccos(params):
         sys.cast_all_exceptions()
 
 
-vectwo_arg_count = 2
-vectwo_arg_types = [c.L_NUMBER, c.L_NUMBER]
-def vectwo(params):
+vec2_arg_count = 2
+vec2_arg_types = [c.L_NUMBER, c.L_NUMBER]
+def vec2(params):
     try:
         x = params[0]
         y = params[1]
@@ -246,9 +246,9 @@ def vectwo(params):
         sys.cast_all_exceptions()
         return False
 
-vecthree_arg_count = 3
-vecthree_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def vecthree(params):
+vec3_arg_count = 3
+vec3_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def vec3(params):
     try:
         x = params[0]
         y = params[1]
@@ -260,9 +260,9 @@ def vecthree(params):
         sys.cast_all_exceptions()
         return False
 
-vecfour_arg_count = 4
-vecfour_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def vecfour(params):
+vec4_arg_count = 4
+vec4_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def vec4(params):
     try:
         x = params[0]
         y = params[1]
@@ -275,15 +275,15 @@ def vecfour(params):
         sys.cast_all_exceptions()
         return False
 
-add_vectwo_arg_count = 2
-add_vectwo_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def add_vectwo(params):
+add_vec2_arg_count = 2
+add_vec2_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def add_vec2(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -294,15 +294,15 @@ def add_vectwo(params):
         sys.cast_all_exceptions()
         return False
 
-sub_vectwo_arg_count = 2
-sub_vectwo_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def sub_vectwo(params):
+sub_vec2_arg_count = 2
+sub_vec2_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def sub_vec2(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -313,9 +313,9 @@ def sub_vectwo(params):
         sys.cast_all_exceptions()
         return False
 
-div_vectwo_arg_count = 2
-div_vectwo_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def div_vectwo(params):
+div_vec2_arg_count = 2
+div_vec2_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def div_vec2(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -326,9 +326,9 @@ def div_vectwo(params):
         sys.cast_all_exceptions()
         return False
 
-mul_vectwo_arg_count = 2
-mul_vectwo_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def mul_vectwo(params):
+mul_vec2_arg_count = 2
+mul_vec2_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def mul_vec2(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -339,15 +339,15 @@ def mul_vectwo(params):
         sys.cast_all_exceptions()
         return False
 
-add_vecthree_arg_count = 2
-add_vecthree_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def add_vecthree(params):
+add_vec3_arg_count = 2
+add_vec3_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def add_vec3(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -358,15 +358,15 @@ def add_vecthree(params):
         sys.cast_all_exceptions()
         return False
 
-sub_vecthree_arg_count = 2
-sub_vecthree_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def sub_vecthree(params):
+sub_vec3_arg_count = 2
+sub_vec3_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def sub_vec3(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -377,9 +377,9 @@ def sub_vecthree(params):
         sys.cast_all_exceptions()
         return False
 
-div_vecthree_arg_count = 2
-div_vecthree_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def div_vecthree(params):
+div_vec3_arg_count = 2
+div_vec3_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def div_vec3(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -390,9 +390,9 @@ def div_vecthree(params):
         sys.cast_all_exceptions()
         return False
 
-mul_vecthree_arg_count = 2
-mul_vecthree_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def mul_vecthree(params):
+mul_vec3_arg_count = 2
+mul_vec3_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def mul_vec3(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -403,15 +403,15 @@ def mul_vecthree(params):
         sys.cast_all_exceptions()
         return False
 
-add_vecfour_arg_count = 2
-add_vecfour_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def add_vecfour(params):
+add_vec4_arg_count = 2
+add_vec4_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def add_vec4(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -422,15 +422,15 @@ def add_vecfour(params):
         sys.cast_all_exceptions()
         return False
 
-sub_vecfour_arg_count = 2
-sub_vecfour_arg_types = [c.L_OBJECT, c.L_OBJECT]
-def sub_vecfour(params):
+sub_vec4_arg_count = 2
+sub_vec4_arg_types = [c.L_OBJECT, c.L_OBJECT]
+def sub_vec4(params):
     try:
         vec1 = params[0]
         vec2 = params[1]
 
         if not len(vec1) == len(vec2):
-            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The two given vectors have to be the same type.", -1)
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The 2 given vectors have to be the same type.", -1)
             sys.cast_all_exceptions()
             return False
 
@@ -441,9 +441,9 @@ def sub_vecfour(params):
         sys.cast_all_exceptions()
         return False
 
-div_vecfour_arg_count = 2
-div_vecfour_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def div_vecfour(params):
+div_vec4_arg_count = 2
+div_vec4_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def div_vec4(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -454,9 +454,9 @@ def div_vecfour(params):
         sys.cast_all_exceptions()
         return False
 
-mul_vecfour_arg_count = 2
-mul_vecfour_arg_types = [c.L_OBJECT, c.L_NUMBER]
-def mul_vecfour(params):
+mul_vec4_arg_count = 2
+mul_vec4_arg_types = [c.L_OBJECT, c.L_NUMBER]
+def mul_vec4(params):
     try:
         vec1 = params[0]
         num = params[1]
@@ -488,9 +488,9 @@ def norm(params):
         vec       = params[0]
         magnitude = mag(params)
 
-        if len(vec) == 2: return div_vectwo([vec, magnitude])  
-        if len(vec) == 3: return div_vecthree([vec, magnitude])  
-        if len(vec) == 4: return div_vecfour([vec, magnitude])  
+        if len(vec) == 2: return div_vec2([vec, magnitude])  
+        if len(vec) == 3: return div_vec3([vec, magnitude])  
+        if len(vec) == 4: return div_vec4([vec, magnitude])  
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
@@ -506,18 +506,18 @@ def flyout_vector(params):
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
 
-mat_twoXtwo_identity_arg_count = 0
-mat_twoXtwo_identity_arg_types = []
-def mat_twoXtwo_identity(params):
+mat2X2_identity_arg_count = 0
+mat2X2_identity_arg_types = []
+def mat2X2_identity(params):
     try: return [1, 0, 0, 1]
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False
 
-mat_twoXtwo_arg_count = 4
-mat_twoXtwo_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def mat_twoXtwo(params):
+mat2X2_arg_count = 4
+mat2X2_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat2X2(params):
     try:
         a1, a2 = params[0], params[1]
         b1, b2 = params[2], params[3] 
@@ -527,9 +527,9 @@ def mat_twoXtwo(params):
         sys.cast_all_exceptions()
         return False
 
-mat_twoXthree_arg_count = 6
-mat_twoXthree_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def mat_twoXthree(params):
+mat2X3_arg_count = 6
+mat2X3_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat2X3(params):
     try:
         a1, a2, a3 = params[0], params[1], params[2]
         b1, b2, b3 = params[3], params[4], params[5]
@@ -539,18 +539,18 @@ def mat_twoXthree(params):
         sys.cast_all_exceptions()
         return False
 
-mat_threeXthree_identity_arg_count = 0
-mat_threeXthree_identity_arg_types = []
-def mat_threeXthree_identity(params):
+mat3X3_identity_arg_count = 0
+mat3X3_identity_arg_types = []
+def mat3X3_identity(params):
     try: return [1, 0, 0, 0, 1, 0, 0, 0, 1]
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False
 
-mat_threeXthree_arg_count = 9
-mat_threeXthree_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def mat_threeXthree(params):
+mat3X3_arg_count = 9
+mat3X3_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat3X3(params):
     try:
         a1, a2, a3 = params[0], params[1], params[2]
         b1, b2, b3 = params[3], params[4], params[5]
@@ -561,9 +561,9 @@ def mat_threeXthree(params):
         sys.cast_all_exceptions()
         return False
 
-mat_threeXfour_arg_count = 12
-mat_threeXfour_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def mat_threeXfour(params):
+mat3X4_arg_count = 12
+mat3X4_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat3X4(params):
     try:
         a1, a2, a3, a4 = params[0],  params[1], params[2],  params[3]
         b1, b2, b3, b4 = params[4],  params[5], params[6],  params[7]
@@ -574,18 +574,18 @@ def mat_threeXfour(params):
         sys.cast_all_exceptions()
         return False
 
-mat_fourXfour_identity_arg_count = 0
-mat_fourXfour_identity_arg_types = []
-def mat_fourXfour_identity(params):
+mat4X4_identity_arg_count = 0
+mat4X4_identity_arg_types = []
+def mat4X4_identity(params):
     try: return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False
 
-mat_fourXfour_arg_count = 16
-mat_fourXfour_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
-def mat_fourXfour(params):
+mat4X4_arg_count = 16
+mat4X4_arg_types = [c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER, c.L_NUMBER]
+def mat4X4(params):
     try:
         a1, a2, a3, a4 = params[0],  params[1],  params[2],  params[3]
         b1, b2, b3, b4 = params[4],  params[5],  params[6],  params[7]

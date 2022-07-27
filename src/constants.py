@@ -289,6 +289,7 @@ def get_value_type_to_lib_value_type(type):
     if type is BOOL:                    return L_BOOL  
     if type is OBJECT:                  return L_OBJECT   
     if type is LIST:                    return L_LIST
+    if type is EXTERN:                  return EXTERN
 
 def get_lib_value_type_to_str(type):    
     if type == L_NUMBER:                return "NUMBER"

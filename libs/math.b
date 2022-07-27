@@ -67,13 +67,13 @@ wax arccos :python<"python.math">:
 ########################## Vector math ##########################
 
 :functionptr:
-wax vectwo :python<"python.math">:
+wax vec2 :python<"python.math">:
 
 :functionptr:
-wax vecthree :python<"python.math">:
+wax vec3 :python<"python.math">:
 
 :functionptr:
-wax vecfour :python<"python.math">:
+wax vec4 :python<"python.math">:
 
 # Used to visually show what value of a vector is accessed
 wax X 0
@@ -82,42 +82,42 @@ wax Z 2
 wax W 3
 
 :functionptr:
-wax add_vectwo :python<"python.math">:
+wax add_vec2 :python<"python.math">:
 
 :functionptr:
-wax sub_vectwo :python<"python.math">:
+wax sub_vec2 :python<"python.math">:
 
 :functionptr:
-wax div_vectwo :python<"python.math">:
+wax div_vec2 :python<"python.math">:
 
 :functionptr:
-wax mul_vectwo :python<"python.math">:
-
-
-:functionptr:
-wax add_vecthree :python<"python.math">:
-
-:functionptr:
-wax sub_vecthree :python<"python.math">:
-
-:functionptr:
-wax div_vecthree :python<"python.math">:
-
-:functionptr:
-wax mul_vecthree :python<"python.math">:
+wax mul_vec2 :python<"python.math">:
 
 
 :functionptr:
-wax add_vecfour :python<"python.math">:
+wax add_vec3 :python<"python.math">:
 
 :functionptr:
-wax sub_vecfour :python<"python.math">:
+wax sub_vec3 :python<"python.math">:
 
 :functionptr:
-wax div_vecfour :python<"python.math">:
+wax div_vec3 :python<"python.math">:
 
 :functionptr:
-wax mul_vecfour :python<"python.math">:
+wax mul_vec3 :python<"python.math">:
+
+
+:functionptr:
+wax add_vec4 :python<"python.math">:
+
+:functionptr:
+wax sub_vec4 :python<"python.math">:
+
+:functionptr:
+wax div_vec4 :python<"python.math">:
+
+:functionptr:
+wax mul_vec4 :python<"python.math">:
 
 
 :functionptr:
@@ -132,28 +132,28 @@ wax flyout_vector :python<"python.math">:
 ########################## Matrix math ##########################
 
 :functionptr:
-wax mat_twoXtwo_identity :python<"python.math">:
+wax mat2X2_identity :python<"python.math">:
 
 :functionptr:
-wax mat_twoXtwo :python<"python.math">:
+wax mat2X2 :python<"python.math">:
 
 :functionptr:
-wax mat_twoXthree :python<"python.math">:
+wax mat2X3 :python<"python.math">:
 
 :functionptr:
-wax mat_threeXthree_identity :python<"python.math">:
+wax mat3X3_identity :python<"python.math">:
 
 :functionptr:
-wax mat_threeXthree :python<"python.math">:
+wax mat3X3 :python<"python.math">:
 
 :functionptr:
-wax mat_threeXfour :python<"python.math">:
+wax mat3X4 :python<"python.math">:
 
 :functionptr:
-wax mat_fourXfour_identity :python<"python.math">:
+wax mat4X4_identity :python<"python.math">:
 
 :functionptr:
-wax mat_fourXfour :python<"python.math">:
+wax mat4X4 :python<"python.math">:
 
 :functionptr:
 wax flyout_matrix :python<"python.math">:
