@@ -11,11 +11,6 @@ objects = {}
 sys = system("", "john_zelle_graphics.b", True)
 sys.error_system.constants_module = c
 
-def cast_all_exceptions():
-    global sys
-    sys.error_system.throw_errors()
-    sys.error_system.throw_warnings()
-
 ####################################################################################################
 
 create_window_arg_count = 4
@@ -31,7 +26,7 @@ def create_window(params):
         window = GraphWin(title, width, height, autoflush)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
 
 win_getMouse_arg_count = 0
 win_getMouse_arg_types = []
@@ -41,7 +36,7 @@ def win_getMouse(params):
         window.getMouse()
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
 
 win_close_arg_count = 0
 win_close_arg_types = []
@@ -51,7 +46,7 @@ def win_close(params):
         window.close()
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
 
 background_color_arg_count = 3
 background_color_arg_types = [c.L_INT, c.L_INT, c.L_INT]
@@ -65,14 +60,14 @@ def background_color(params):
         window.setBackground(color)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
 
 ####################################################################################################
 
 def get_object(name):
     if not name in objects.keys():
         sys.error_system.create_error(c.PYTHON_EXCEPTION, c.LIBRARY, f"The object called '{name}' doesn't exist.")
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
     return objects[name]
 def point_to_object(point):
     return Point(point[0], point[1])
@@ -89,7 +84,7 @@ def create_point(params):
         return (x, y)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False
 
 delete_point_arg_count = 1
@@ -103,7 +98,7 @@ def delete_point(params):
         return False
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False
 
 set_point_arg_count = 2
@@ -118,7 +113,7 @@ def set_point(params):
         return False
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False
 
 get_point_arg_count = 1
@@ -131,7 +126,7 @@ def get_point(params):
         return False
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False
 
 create_circle_arg_count = 2
@@ -147,7 +142,7 @@ def create_circle(params):
         return name
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False
 
 circle_draw_arg_count = 1
@@ -159,11 +154,11 @@ def circle_draw(params):
         circle = get_object(name)
         if not isinstance(circle, Circle):
             sys.error_system.create_error(c.PYTHON_EXCEPTION, c.LIBRARY, "The object you are trying to reference is not a circle.")
-            cast_all_exceptions()
+            sys.cast_all_exceptions()
         
         circle.draw(window)
         return True
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        cast_all_exceptions()
+        sys.cast_all_exceptions()
         return False

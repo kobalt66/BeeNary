@@ -1,3 +1,0 @@
-:meadow:
-
-wax pie "PIE!"

@@ -164,7 +164,7 @@ class Lexer:
 
     def word(self):
         str_value = self.currChar
-        condition = lambda: True if self.currChar in IDENTIFIER_CHARS else False
+        condition = lambda: True if self.currChar in IDENTIFIER_CHARS + NUMBER_CHARS else False
 
         while self.advance_condition(condition):
             str_value += self.currChar
@@ -177,14 +177,14 @@ class Lexer:
 
     def comment(self):
         self.advance()
+        condition = lambda: True if not self.currChar == "\n" else False
+        if self.currChar == "\n": return token(T_COMMENT, '', self.ln)
+    
         str_value = self.currChar
-        condition = lambda: True if self.currChar != "\n" else False 
-
         while self.advance_condition(condition):
             str_value += self.currChar
 
-        type = T_COMMENT
-        return token(type, str_value, self.ln)
+        return token(T_COMMENT, str_value, self.ln)
     
     def string(self):
         self.advance()
@@ -286,7 +286,23 @@ class Lexer:
             sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
 
         return token_list
-    
+
+    def simplify_identifier_arg(self, token_list, idx):
+        try:
+            identifier = token_list[idx]
+            followed_by = token_list[idx + 1]
+
+            if followed_by.typeof(T_LT):
+                type = T_EXTERN_FUNCTION
+                token_list, params = self.simplify_params(token_list, idx + 1)
+                new_token = token(type, identifier.str_value, identifier.ln, params)
+
+                token_list[idx] = new_token
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, SIMPLIFYING)
+
+        return token_list
+
     def simplify_params(self, token_list, idx):
         currToken = token_list[idx]
         if not currToken.typeof(T_LT):
@@ -317,7 +333,12 @@ class Lexer:
                     sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SIMPLIFYING, f"Expected '>' instead of '{param_token.str_value}'.", param_token.ln)
                 break
 
-            if param_token.type in [T_IDENTIFIER, T_INT, T_FLOAT, T_STRING, T_BOOL]:
+            if param_token.typeof(T_IDENTIFIER):
+                token_list = self.simplify_identifier_arg(token_list, idx + 1 + param_idx)
+                param_token = token_list[idx + 1 + param_idx]
+                params.append(param_token)
+                more_params = False
+            elif param_token.type in [T_INT, T_FLOAT, T_STRING, T_BOOL]:
                 params.append(param_token)
                 more_params = False
             elif not param_token.type in [T_COMMA, T_WHITESPACE]:
@@ -348,10 +369,10 @@ class Parser:
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
         self.variable_value_types   = [EXTERN, IDENTIFIER, TOKEN, INT, FLOAT, STRING, BOOL, TAKE]
-        self.inv_condition_types    = [N_VALUE]
-        self.inv_expr_properties    = [BUILTIN]
+        self.inv_condition_types    = [N_VALUE, N_FUNCTION]
+        self.inv_expr_properties    = [BUILTIN, EXTERN]
         self.valid_operators        = ["is", "not", "in"]
-        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL]
+        self.valid_param_types      = [IDENTIFIER, INT, FLOAT, STRING, BOOL, EXTERN]
 
         self.node_list = []
         self.idx = 0
@@ -384,6 +405,8 @@ class Parser:
             if currToken.typeof(T_BUILTIN_FUNCTION):
                 if currToken.has_value("inv"):
                     return self.inv(tokens)
+                if currToken.has_value("other"):
+                    return self.other(tokens)
                 if currToken.has_value("flyout"):
                     return self.flyout(tokens)
                 if currToken.has_value("flyto"):
@@ -398,7 +421,7 @@ class Parser:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
             elif currToken.typeof(T_EXTERN_FUNCTION):
-                return self.extern_function(tokens)
+                return self.extern_function(tokens, token)
             elif currToken.typeof(T_STRING):
                 return self.string(currToken.str_value, currToken.ln)
             elif currToken.type in [T_INT, T_FLOAT]:
@@ -456,9 +479,9 @@ class Parser:
         properties.append(get_node_property_by_value(token.str_value))
         return node(type, token.ln, properties, params = params )
 
-    def extern_function(self, tokens):
+    def extern_function(self, tokens, token = None):
         try:
-            function = tokens[self.idx]
+            function = tokens[self.idx] if not token else token
             params = self.params(function)
             properties = [EXTERN, IDENTIFIER]
             
@@ -526,9 +549,30 @@ class Parser:
             if not expr or expr.has_property(TOKEN) or not any(p in self.inv_expr_properties for p in expr.properties):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The inv-statement cannot be left without a following expression.", inv.ln)
 
-            properties = [BUILTIN, INV]
+            other = None
+            followed_by = tokens[self.idx + 2]
+            if followed_by and followed_by.has_value("other"):
+                self.idx += 2
+                other = self.expr(tokens)
 
-            return node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators)        
+            properties = [BUILTIN, INV]
+            if other: properties.append(OTHER)
+
+            return node(N_FUNCTION, inv.ln, properties, [left, right, other], expr, operators = operators)        
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def other(self, tokens):
+        try:
+            other = tokens[self.idx]
+
+            self.idx += 1
+            expr = self.expr(tokens)
+            if not expr or expr.has_property(TOKEN) or not any(p in self.inv_expr_properties for p in expr.properties):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The other-statement cannot be left without a following expression.", other.ln)
+
+            properties = [BUILTIN, OTHER]
+            return node(N_FUNCTION, other.ln, properties, value = expr)
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
@@ -538,7 +582,7 @@ class Parser:
 
             self.idx += 1
             value = self.expr(tokens)
-            if not value or not value.typeof(N_VALUE):
+            if not value or not value.type in [N_VALUE, N_FUNCTION]:
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "Expected a value (string, number,...).", flyout.ln)
 
             properties = [BUILTIN, FLYOUT]
@@ -835,11 +879,13 @@ class Sortout:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be single values somewhere in the script.", n.ln)
             if (n.has_property(HONEY) or n.has_property(STICK)) and not n.has_property(BUILTIN):
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
+            if n.has_property(OTHER) and not n.has_property(INV):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An other-statement cannot be alone in a script.", n.ln)
 
         if not start_section and not self.library:
-            sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", n.ln)
+            sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", 1)
         if hive_start and not hive_end:
-            sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.", n.ln)
+            sys.error_system.create_error(EXPECTED_HIVE_SECTION_EXCEPTION, SORTOUT, "The hive section has to be closed of with another hive token.")
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -1094,7 +1140,7 @@ class Sortout:
 
     def Phase3_params(self, currNode):
         for param in currNode.params:
-            if any (p in self.tokens_only_string_args for p in currNode.properties):
+            if any(p in self.tokens_only_string_args for p in currNode.properties):
                 if not currNode.params[0].has_property(STRING):
                     sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in currNode.properties) + "] can only have one string message argument.", currNode.ln)
             elif currNode.has_property(HONEYCOMB):
@@ -1165,7 +1211,7 @@ class Interpreter:
         while self.idx < len(self.nodes):
             self.idx += 1
             if self.idx >= len(self.nodes):
-                sys.error_system.create_error(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "The script needs at least one end token so that the program can exit properly.", self.ln)
+                sys.error_system.create_warning(MISSING_END_TOKEN_EXCEPTION, INTERPRETING, "Unexpected eof! Use an end token to exit properly.", self.ln)
                 break
 
             currNode = self.nodes[self.idx]
@@ -1203,7 +1249,10 @@ class Interpreter:
     def functions(self, currNode):
         if currNode.has_property(FLYOUT):
             value = self.extract_value(currNode.value)
-            print(value.value)
+            if not value:
+                sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to flyout to doesn't carry a value. Thus you cannot use the object as a value.", currNode.ln)
+                self.should_exit = True
+            else: print(value.value)
         elif currNode.has_property(FLYTO):
             section = sys.virtual_stack.get_var(currNode.value)
             self.idx = section.idx
@@ -1224,7 +1273,7 @@ class Interpreter:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts one argument, which is the idx.", currNode.ln)
                 self.should_exit = True
 
-            valid, idx = self.validate_list_idx(value.child, params[0].value, currNode.ln)
+            valid, idx = self.validate_list_idx(value.child, params[0], currNode.ln)
             if valid:
                 value = value.child[idx]
                 return self.extract_value(value)
@@ -1264,7 +1313,7 @@ class Interpreter:
                 sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "An honeycomb identifier only excepts one argument, which is the idx.", currNode.ln)
                 self.should_exit = True
 
-            valid, idx = self.validate_list_idx(value.value.child, params[0].value, currNode.ln)
+            valid, idx = self.validate_list_idx(value.value.child, params[0], currNode.ln)
             if valid:
                 value = value.value.child[idx]
                 return self.extract_value(value)
@@ -1345,23 +1394,32 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right))
         self.every_data = False
 
+        condition_succeded = False
         if currNode.has_operator("is"):
             if not_condition:
                 if not value_left == value_right:
                     self.expression(currNode.value)
+                    condition_succeded = True
             else:
                 if value_left == value_right:
                     self.expression(currNode.value)
+                    condition_succeded = True
         elif currNode.has_operator("in"):
             if not_condition:
                 if not any(item is value_left for item in value_right):
                     self.expression(currNode.value)
+                    condition_succeded = True
             else:
                 if any(item is value_left for item in value_right):
                     self.expression(currNode.value)
+                    condition_succeded = True
 
-    def validate_list_idx(self, list, idx_value, ln):
+        if not condition_succeded and currNode.has_property(OTHER):
+           self.expression(currNode.child[2].value)
+
+    def validate_list_idx(self, list, param, ln):
         idx = -1
+        idx_value = param.value if not param.has_property(IDENTIFIER) else self.extract_value(param).value
         try: idx = int(idx_value) 
         except Exception as e:
             sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts a number as it's parameter.", ln)
@@ -1381,17 +1439,25 @@ class Interpreter:
             if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
-                p = sys.virtual_stack.get_var(p)
-                p = self.extract_value(p)
+                if p.has_property(EXTERN):
+                    p = self.extract_value(p)
+                else:
+                    p = sys.virtual_stack.get_var(p)
+                    p = self.extract_value(p)
 
             param_types = []
             for property in p.properties:
                 type = get_value_type_to_lib_value_type(property)
                 if type: param_types.append(type)
 
-            if not any(type == arg_types[idx] for type in param_types):
-                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
-                self.should_exit = True
+            if arg_types[idx] == L_NUMBER:
+                if not any(type in [L_INT, L_FLOAT] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                    self.should_exit = True
+            else:
+                if not any(type == arg_types[idx] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
+                    self.should_exit = True
 
             idx += 1
         
@@ -1401,11 +1467,15 @@ class Interpreter:
         types = self.regular_values
         types.append(LIST)
         types.append(OBJECT)
+        types
         final_params = []
         for p in currNode.params:
             value = None
             if p.has_property(IDENTIFIER):
-                value = sys.virtual_stack.get_var(p)
+                if p.has_property(EXTERN):
+                    value = self.extract_value(p)
+                else:
+                    value = sys.virtual_stack.get_var(p)
             else:
                 value = self.extract_value(p)
             
