@@ -71,7 +71,7 @@
 		"builtin-functions": {
 			"patterns": [{
 				"name": "entity.name.function",
-				"match": "\\b(inv|flyto|flyout|wax|sting|take)\\b"
+				"match": "\\b(inv|other|flyto|flyout|wax|sting|take)\\b"
 			}]
 		},
 		"keywords": {
