@@ -1,8 +1,10 @@
-from re import T
-from constants import *
-from classes import *
 import io, os
 import sys as s
+
+try:        from constants import *
+except:     from src.constants import *
+try:        from classes import *
+except:     from src.classes import *
 
 s.path.insert(1, os.getcwd())
 

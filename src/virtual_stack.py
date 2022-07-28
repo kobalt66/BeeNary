@@ -1,6 +1,12 @@
-from constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
-from constants import STACK
-import classes
+from logging import exception
+
+
+try:        from constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
+except:     from src.constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
+try:        from constants import STACK
+except:     from src.constants import STACK
+try:        import classes
+except:     import src.classes as classes
 
 class VirtualStack:
     def __init__(self, script):
