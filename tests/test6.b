@@ -70,5 +70,6 @@ start:
 #    inv add<1, 1> is not 2 flyout "Math works"
 #    other flyout_matrix<mat2X2_identity<>>
 
+flyout add<1, 1>
 
 :end:

@@ -1,6 +1,9 @@
-import error_system as e
-import virtual_stack as v
-from constants import IDENTIFIER, SYSTEM, VARIABLE_NOT_FOUND_EXCEPTION, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
+try:        import error_system as e
+except:     import src.error_system as e
+try:        import virtual_stack as v
+except:     import src.virtual_stack as v
+try:        from constants import IDENTIFIER, SYSTEM, VARIABLE_NOT_FOUND_EXCEPTION, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
+except:     from src.constants import IDENTIFIER, SYSTEM, VARIABLE_NOT_FOUND_EXCEPTION, get_token_type_str, get_node_type_to_str, get_node_property_to_str, N_START, T_NEWLINE, T_WHITESPACE, N_VALUE, TERMINAL_EXCEPTION, TERMINAL
 
 class token:
     def __init__(self, type, str_value, ln, params = None):

@@ -1,0 +1,15 @@
+try:        from interpreter import get_code, run
+except:     from src.interpreter import get_code, run 
+try:        from classes import system
+except:     from src.classes import system
+import sys as s
+
+def main():
+    sys = system()
+    argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10 = sys.process_argv_list(s.argv)
+
+    code = get_code(argv1)
+    run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10)
+
+if __name__ == "__main__":
+    main()

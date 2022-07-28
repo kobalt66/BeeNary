@@ -1,5 +1,7 @@
-from constants import FATAL_ERRORS, SILENT_EXCEPTION, get_exclamation_type_str, get_exclamation_code_str
 import sys, os
+
+try:        from constants import FATAL_ERRORS, SILENT_EXCEPTION, get_exclamation_type_str, get_exclamation_code_str
+except:     from src.constants import FATAL_ERRORS, SILENT_EXCEPTION, get_exclamation_type_str, get_exclamation_code_str
 
 class ErrorSystem:
     def __init__(self, script):
