@@ -48,24 +48,6 @@ def to_str(params):
         sys.cast_all_exceptions()
         return False
 
-to_int_arg_count = 1
-to_int_arg_types = [c.L_ANY]
-def to_int(params):
-    try: return int(params[0])
-    except Exception as e:
-        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        sys.cast_all_exceptions()
-        return False
-
-to_float_arg_count = 1
-to_float_arg_types = [c.L_ANY]
-def to_float(params):
-    try: return float(params[0])
-    except Exception as e:
-        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        sys.cast_all_exceptions()
-        return False
-
 is_string_arg_count = 1
 is_string_arg_types = [c.L_ANY]
 def is_string(params):

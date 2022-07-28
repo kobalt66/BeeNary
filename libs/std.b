@@ -13,12 +13,6 @@ wax stdout_flush :python<"python.std">:
 wax to_str :python<"python.std">:
 
 :functionptr:
-wax to_int :python<"python.std">:
-
-:functionptr:
-wax to_float :python<"python.std">:
-
-:functionptr:
 wax is_string :python<"python.std">:
 
 :functionptr:

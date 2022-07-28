@@ -405,6 +405,8 @@ class Parser:
             if currToken.typeof(T_BUILTIN_FUNCTION):
                 if currToken.has_value("inv"):
                     return self.inv(tokens)
+                if currToken.has_value("other"):
+                    return self.other(tokens)
                 if currToken.has_value("flyout"):
                     return self.flyout(tokens)
                 if currToken.has_value("flyto"):
@@ -547,9 +549,30 @@ class Parser:
             if not expr or expr.has_property(TOKEN) or not any(p in self.inv_expr_properties for p in expr.properties):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The inv-statement cannot be left without a following expression.", inv.ln)
 
-            properties = [BUILTIN, INV]
+            other = None
+            followed_by = tokens[self.idx + 2]
+            if followed_by and followed_by.has_value("other"):
+                self.idx += 2
+                other = self.expr(tokens)
 
-            return node(N_FUNCTION, inv.ln, properties, [left, right], expr, operators = operators)        
+            properties = [BUILTIN, INV]
+            if other: properties.append(OTHER)
+
+            return node(N_FUNCTION, inv.ln, properties, [left, right, other], expr, operators = operators)        
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def other(self, tokens):
+        try:
+            other = tokens[self.idx]
+
+            self.idx += 1
+            expr = self.expr(tokens)
+            if not expr or expr.has_property(TOKEN) or not any(p in self.inv_expr_properties for p in expr.properties):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The other-statement cannot be left without a following expression.", other.ln)
+
+            properties = [BUILTIN, OTHER]
+            return node(N_FUNCTION, other.ln, properties, value = expr)
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
@@ -856,6 +879,8 @@ class Sortout:
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be single values somewhere in the script.", n.ln)
             if (n.has_property(HONEY) or n.has_property(STICK)) and not n.has_property(BUILTIN):
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
+            if n.has_property(OTHER) and not n.has_property(INV):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An other-statement cannot be alone in a script.", n.ln)
 
         if not start_section and not self.library:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", 1)
@@ -1369,20 +1394,28 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right))
         self.every_data = False
 
+        condition_succeded = False
         if currNode.has_operator("is"):
             if not_condition:
                 if not value_left == value_right:
                     self.expression(currNode.value)
+                    condition_succeded = True
             else:
                 if value_left == value_right:
                     self.expression(currNode.value)
+                    condition_succeded = True
         elif currNode.has_operator("in"):
             if not_condition:
                 if not any(item is value_left for item in value_right):
                     self.expression(currNode.value)
+                    condition_succeded = True
             else:
                 if any(item is value_left for item in value_right):
                     self.expression(currNode.value)
+                    condition_succeded = True
+
+        if not condition_succeded and currNode.has_property(OTHER):
+           self.expression(currNode.child[2].value)
 
     def validate_list_idx(self, list, param, ln):
         idx = -1

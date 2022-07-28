@@ -77,6 +77,7 @@ LOADED                  = 0xc31
 ALWAYS_TRUE             = 0xc32
 ALWAYS_FALSE            = 0xc33
 OBJECT                  = 0xc34
+OTHER                   = 0xc35
 
 #####################################################
 # ERROR codes
@@ -240,7 +241,8 @@ def get_node_property_to_str(property):
     if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
     if property is HIVE_START:          return "HIVE_START"   
     if property is HIVE_END:            return "HIVE_END"     
-    if property is INV:                 return "INV"          
+    if property is INV:                 return "INV"   
+    if property is OTHER:               return "OTHER"       
     if property is FLYOUT:              return "FLYOUT"       
     if property is FLYTO:               return "FLYTO"        
     if property is STING:               return "STING"        
@@ -316,7 +318,7 @@ KEYWORDS = [
     "honey",
     "stick",
     "honeypot",
-    "not"
+    "not",
 ]
 TOKENS = [
    "honeycomb",
@@ -334,6 +336,7 @@ BOOLEAN = [
 ]
 BUILTIN_FUNCTION = [
     "inv",
+    "other",
     "flyto",
     "flyout",
     "wax",
