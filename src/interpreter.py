@@ -75,6 +75,63 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
         print("\n")
     
 
+def run_compiled(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
+    global sys
+    sys = system(code, argv1)
+
+    if argv1 == "-help":
+        sys.process_help_flag(argv2)
+        exit(0)
+
+    sys.process_argv(argv2)
+    sys.process_argv(argv3)
+    sys.process_argv(argv4)
+    sys.process_argv(argv5)
+    sys.process_argv(argv6)
+    sys.process_argv(argv7)
+    sys.process_argv(argv8)
+    sys.process_argv(argv9)
+    sys.process_argv(argv10)
+
+    lexer = Lexer(code)
+    tokens = lexer.Phase1()
+    tokens = lexer.Phase2()
+    tokens_final = lexer.get_final_token_list(tokens)
+
+    parser = Parser(tokens_final)
+    nodes = parser.Parse()
+
+    sortout = Sortout(nodes)
+    sorted_nodes = sortout.Phase1()
+    sorted_nodes = sortout.Phase2()
+    sorted_nodes = sortout.Phase3()
+    sorted_nodes = sortout.Finish()
+
+    compiler = Compiler(sorted_nodes)
+    compiler.compile()
+
+    if sys.show_tokens:
+        print("\n\nTOKENS:")
+        for token in tokens:
+            str = token.to_str(sys)
+            if str: print(str)
+        print("\n")
+
+    if sys.show_nodes:
+        print("\n\nNODES:")
+        for node in nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
+    
+    if sys.show_sorted_nodes:
+        print("\n\nSORTED NODES:")
+        for node in sorted_nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
+
+
 def get_code(path):
     global sys
     if path == "-help": return ""
@@ -751,14 +808,19 @@ class Sortout:
     def Sortout_param_check(self, nodes):
         for n in nodes:
             if n.has_property(TOKEN):
-                if n.params and len(n.params) > 1 and n.has_property(END):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT,  "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif not n.params and any(p in self.tokens_with_parmas for p in n.properties):
+                has_params = True if n.params else False
+                param_len = len(n.params)
+                
+                if has_params:
+                    if param_len > 1:
+                        if n.has_property(END):
+                            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT,  "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
+                        elif any(p in self.tokens_with_parmas for p in n.properties):
+                            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
+                    elif not n.has_property(END) and not n.has_property(HONEYCOMB) and not any(p in self.tokens_with_parmas for p in n.properties):
+                        sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
+                elif any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
-                elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END) and not n.has_property(HONEYCOMB):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -1604,4 +1666,40 @@ class Interpreter:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         sys.error_system.script = script
         self.in_library = False
-            
+
+
+class Compiler:
+    def __init__(self, nodes):
+        self.nodes = nodes
+        self.script = ""
+        self.script_path = "./a.asm"
+        self.obj_path = "./a.bin"
+
+    def create_script(self):
+        if os.path.exists(self.script_path):
+            os.remove(self.script_path)
+
+        with open(self.script_path, "x") as file:
+            file.write(self.script)
+            file.close()
+
+        os.system("nasm -f bin a.asm -o a.bin")
+        os.system("chmod +x a.bin")
+        os.system("./a.bin")
+
+        #if os.path.exists(self.obj_path):
+        #    os.remove(self.obj_path)
+
+    def compile(self):
+        self.script = """section .data
+    text db "Hello, World!",10
+ 
+section .text
+    global _start
+ 
+_start:
+    mov ah, 0x0e
+    mov al, [text]
+    int 0x10
+        """
+        self.create_script()
