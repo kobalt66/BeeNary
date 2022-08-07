@@ -47,3 +47,9 @@ wax create_dir :python<"python.std">:
 
 :functionptr:
 wax del_dir :python<"python.std">:
+
+:functionptr:
+wax list :python<"python.std">:
+
+:functionptr:
+wax lengthof :python<"python.std">:

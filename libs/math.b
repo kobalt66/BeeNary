@@ -50,16 +50,10 @@ wax arcsin :python<"python.math">:
 wax tan :python<"python.math">:
 
 :functionptr:
-wax tanh :python<"python.math">:
-
-:functionptr:
 wax arctan :python<"python.math">:
 
 :functionptr:
 wax cos :python<"python.math">:
-
-:functionptr:
-wax cosh :python<"python.math">:
 
 :functionptr:
 wax arccos :python<"python.math">:

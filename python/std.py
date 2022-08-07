@@ -3,6 +3,7 @@ import src.constants as c
 import sys as s
 import os, os.path, shutil
 
+list_type = list
 sys = system("", "std.b", True)
 sys.error_system.constants_module = c
 
@@ -171,3 +172,28 @@ def del_dir(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
+
+list_arg_count = -1
+list_arg_types = [c.L_ANY]
+def list(params):
+    try: return params
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False   
+
+lengthof_arg_count = 1
+lengthof_arg_types = [c.L_ANY]
+def lengthof(params):
+    try:
+        arg = params[0]
+        if not isinstance(arg, (tuple, list_type)):
+            sys.error_system.create_error(c.PYTHON_EXCEPTION, c.LIBRARY, "Only lists and tuple objects have a length.")
+            sys.cast_all_exceptions()
+            return False
+
+        return len(arg)
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False

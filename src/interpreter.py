@@ -195,6 +195,9 @@ class Lexer:
             elif self.currChar == '>':
                 self.tokens.append(token(T_GT, '>', self.ln))
                 if self.advance(): break
+            elif self.currChar == '@':
+                self.tokens.append(token(T_ADD, '>', self.ln))
+                if self.advance(): break
             elif self.currChar == '#':
                 self.tokens.append(self.comment())
             elif self.currChar == '"':
@@ -247,9 +250,10 @@ class Lexer:
     
     def string(self):
         self.advance()
-        str_value = self.currChar
         condition = lambda: True if not self.currChar in '"\n' else False
-
+        if self.currChar in '"\n': return token(T_STRING, '', self.ln)
+    
+        str_value = self.currChar
         while self.advance_condition(condition):
             str_value += self.currChar
 
@@ -423,7 +427,7 @@ class Lexer:
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.expression_types       = [T_IDENTIFIER, T_STRING, T_BOOL, T_INT, T_FLOAT, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.expression_types       = [T_IDENTIFIER, T_STRING, T_BOOL, T_INT, T_FLOAT, T_KEYWORD, T_ADD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
@@ -437,6 +441,7 @@ class Parser:
         self.idx = 0
 
     def Parse(self):
+        
         while self.idx < len(self.tokens):
             currToken = self.tokens[self.idx]
 
@@ -494,6 +499,8 @@ class Parser:
                 return self.token(tokens)
             elif currToken.typeof(T_KEYWORD):
                 return self.keyword(tokens)
+            elif currToken.typeof(T_ADD):
+                return self.addToken(tokens)
             elif currToken.typeof(T_NEWLINE):
                 return None
         except:
@@ -505,6 +512,22 @@ class Parser:
         type = N_START if section.typeof(T_START) else N_SECTION
         value = self.simple_identifier(section)
         return node(type, section.ln, properties, value=value)
+
+    def addToken(self, tokens):
+        try:
+            add = tokens[self.idx]
+
+            self.idx += 1
+            followed_by = self.expr(tokens)
+            if not followed_by or not followed_by.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "A valid identifier must follow an '@' character", add.ln)
+            elif not followed_by.ptr in ADDTOKENS:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The addtoken of type '{followed_by.ptr}' is not valid.", add.ln)
+
+            properties = [BUILTIN, ADDTOKEN]
+            return node(N_ADDTOKEN, add.ln, properties, value = followed_by)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def keyword(self, tokens):
         keyword = tokens[self.idx]
@@ -780,13 +803,18 @@ class Parser:
 class Sortout:
     def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None, sections = None):
         self.nodes = nodes
+
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
+        self.stack_objects = [SECTION, WAX]
+        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
+        self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
+        self.valid_onetime_expressions = [HONEY]
+        self.valid_threaded_expressions = [INV, HONEY, STICK, EXTERN]
+        self.valid_readonly_expressions = [HONEY]
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
-        self.stack_objects = [SECTION, WAX]
-        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
@@ -801,6 +829,7 @@ class Sortout:
         nodes = self.Sortout_param_check(self.nodes)
         nodes = self.libraries(nodes)
         nodes = self.Sortout_inv(nodes)
+        nodes = self.Sortout_addtoken(nodes)
         nodes = self.Sortout_others(nodes)
         self.nodes = nodes
         return self.nodes
@@ -809,7 +838,7 @@ class Sortout:
         for n in nodes:
             if n.has_property(TOKEN):
                 has_params = True if n.params else False
-                param_len = len(n.params)
+                if has_params: param_len = len(n.params)
                 
                 if has_params:
                     if param_len > 1:
@@ -910,12 +939,58 @@ class Sortout:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         return updated_nodes
 
+    def Sortout_addtoken(self, nodes):
+        updated_nodes = []
+        
+        addtoken = None
+        type = None
+        valid = True
+        for n in nodes:
+            if addtoken:
+                type = get_addtoken_property_by_value(addtoken.value.ptr)
+                if any(p in self.valid_addtoken_expressions for p in n.properties):                    
+                    if type is ONETIME:
+                        if not any(p in self.valid_onetime_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is THREADED:
+                        if not any(p in self.valid_threaded_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is READONLY:
+                        if not any(p in self.valid_readonly_expressions for p in n.properties):
+                            valid = False
+                            break
+
+                    n.add_property(type)
+                else:
+                    updated_nodes.append(addtoken)
+                    updated_nodes.append(n)
+                    
+                addtoken = None
+
+            if n.has_property(ADDTOKEN):
+                addtoken = n
+                continue
+
+            updated_nodes.append(n)
+            
+        if not valid:
+            sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, f"The @-token of type '{get_addtoken_property_to_str(type)}' cannot be applied to an expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "].", n.ln)
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
+        return updated_nodes
+
     def Sortout_others(self, nodes):
         start_section = False
         hive_start = False
         inside_hive = False
         hive_end = False
         for n in nodes:
+            if n.has_property(ADDTOKEN):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be a single @-token somewhere in the script.", n.ln)
             if n.has_property(SECTION):
                 if not n.value.ptr in self.sections:
                     self.sections.append(n.value.ptr)
@@ -1346,14 +1421,15 @@ class Interpreter:
             func_name = function.__name__
             arg_count = sys.get_function_arg_count(func_name)
 
-            if len(params) < arg_count:
-                sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
-                self.should_exit = True
-                return None
-            elif len(params) > arg_count:
-                sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
-                self.should_exit = True
-                return None
+            if not arg_count == -1: 
+                if len(params) < arg_count:
+                    sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
+                    self.should_exit = True
+                    return None
+                elif len(params) > arg_count:
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
+                    self.should_exit = True
+                    return None
 
             check = self.validate_arg_types(func_name, params, currNode.ln)
             if not check: return None
@@ -1496,7 +1572,21 @@ class Interpreter:
         return not self.should_exit, idx
 
     def validate_arg_types(self, func_name, params, ln):
+        arg_count = sys.get_function_arg_count(func_name)
         arg_types = sys.get_function_arg_types(func_name)
+
+        if arg_count == -1:
+            param_types = []
+            for p in params:
+                for property in p.properties:
+                    type = get_value_type_to_lib_value_type(property)
+                    if type: param_types.append(type)
+
+            if not arg_types[0] == L_ANY:
+                if not all(type == arg_types[0] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"All parameters have to be of type {get_lib_value_type_to_str(arg_types[0])}.", ln)
+                    self.should_exit = True
+            return not self.should_exit
 
         idx = 0
         for p in params:
@@ -1552,7 +1642,7 @@ class Interpreter:
         return final_params
 
     def translate_return_to_node_format(self, return_value, ln):
-        if type(return_value) in [int, float, str, bool]:
+        if isinstance(return_value, (int, float, str, bool)):
             return self.regular_value_to_node(return_value, ln)
         if isinstance(return_value, list) or isinstance(return_value, tuple):
             final_list = [self.regular_value_to_node(v, ln) for v in list(return_value)]
