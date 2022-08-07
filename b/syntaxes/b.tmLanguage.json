@@ -9,6 +9,9 @@
 			"include": "#tokens"
 		},
 		{
+			"include": "#addtokens"
+		},
+		{
 			"include": "#chars"
 		},
 		{
@@ -41,6 +44,12 @@
 			"patterns": [{
 				"name": "entity.name.class",
 				"match": "\\b(?<=:)(src|end|trace|functionptr|python|honeycomb|hive|meadow)(?=[:.<])\\b"
+			}]
+		},
+		"addtokens": {
+			"patterns": [{
+				"name": "entity.other.inherited-class",
+				"match": "\\b(?<=@)(onetime|threaded|readonly)\\b"
 			}]
 		},
 		"chars": {
