@@ -1,4 +1,4 @@
-import io, os
+import io, os, threading
 import sys as s
 
 try:        from constants import *
@@ -810,7 +810,7 @@ class Sortout:
         self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
         self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_onetime_expressions = [HONEY]
-        self.valid_threaded_expressions = [INV, HONEY, STICK, EXTERN]
+        self.valid_threaded_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_readonly_expressions = [HONEY]
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
@@ -1369,16 +1369,28 @@ class Interpreter:
 
     def expression(self, currNode):
         if any(p in self.function_properties for p in currNode.properties):
+            if currNode.has_property(THREADED):
+                threading.Thread(target=self.functions, args=[currNode]).start()
+                return
             self.functions(currNode)
         elif currNode.has_property(TOKEN):
             self.tokens(currNode)
         elif currNode.has_property(HONEY):
+            if currNode.has_property(THREADED):
+                threading.Thread(target=self.honey, args=[currNode]).start()
+                return
             self.honey(currNode)
         elif currNode.has_property(STICK):
+            if currNode.has_property(THREADED):
+                threading.Thread(target=self.stick, args=[currNode]).start()
+                return
             self.stick(currNode)
         elif currNode.has_property(HONEYPOT):
             self.honeypot(currNode)
         elif currNode.has_property(EXTERN):
+            if currNode.has_property(THREADED):
+                threading.Thread(target=self.extern, args=[currNode]).start()
+                return
             self.extern(currNode)
         elif currNode.typeof(N_LIB):
             if not currNode.has_property(LOADED):
@@ -1471,6 +1483,9 @@ class Interpreter:
             honey.add_property(EXTERN)
 
         if sys.virtual_stack.isset(ptr):
+            if sys.virtual_stack.get_var_by_ptr(ptr).has_property(READONLY):
+                sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, STACK, f"The variable '{ptr}' is marked as readonly and thus a constant.", currNode.ln)
+                return
             sys.virtual_stack.set_var(honey)
         else:
             sys.virtual_stack.init_var(honey)
@@ -1534,6 +1549,15 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right))
         self.every_data = False
 
+        if not value_left:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The left condition value doesn't carry any value. Thus it cannot be compared to the right condition value.", currNode.ln)
+            self.should_exit = True
+            return
+        if not value_right:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The right condition value doesn't carry any value. Thus it cannot be compared to the left condition value.", currNode.ln)
+            self.should_exit = True
+            return
+
         condition_succeded = False
         if currNode.has_operator("is"):
             if not_condition:
@@ -1559,19 +1583,23 @@ class Interpreter:
 
     def validate_list_idx(self, list, param, ln):
         idx = -1
+        check = True
         idx_value = param.value if not param.has_property(IDENTIFIER) else self.extract_value(param).value
         try: idx = int(idx_value) 
         except Exception as e:
             sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts a number as it's parameter.", ln)
             self.should_exit = True
+            check = False
         
         if idx > (len(list) - 1) or idx < 0:
             sys.error_system.create_error(INDEX_OUT_OF_RANGE_EXCEPTION, INTERPRETING, "The idx was outside the range of the list you tried to access.", ln)
             self.should_exit = True
+            check = False
         
-        return not self.should_exit, idx
+        return check, idx
 
     def validate_arg_types(self, func_name, params, ln):
+        check = True
         arg_count = sys.get_function_arg_count(func_name)
         arg_types = sys.get_function_arg_types(func_name)
 
@@ -1586,7 +1614,8 @@ class Interpreter:
                 if not all(type == arg_types[0] for type in param_types):
                     sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"All parameters have to be of type {get_lib_value_type_to_str(arg_types[0])}.", ln)
                     self.should_exit = True
-            return not self.should_exit
+                    check = False
+            return check
 
         idx = 0
         for p in params:
@@ -1608,14 +1637,16 @@ class Interpreter:
                 if not any(type in [L_INT, L_FLOAT] for type in param_types):
                     sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
                     self.should_exit = True
+                    check = False
             else:
                 if not any(type == arg_types[idx] for type in param_types):
                     sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
                     self.should_exit = True
+                    check = False
 
             idx += 1
         
-        return not self.should_exit
+        return check
 
     def translate_params_to_lib_format(self, currNode):
         types = self.regular_values
@@ -1666,6 +1697,8 @@ class Interpreter:
             return Parser(None).string(f"{value.__name__}: [ <object> function ]", -1)
 
         if value.has_property(HONEY):
+            if value.has_property(ONETIME):
+                sys.virtual_stack.del_var(value.child)
             return value.value
         elif value.has_property(HONEYPOT):
             if not value.params and not self.every_data:

@@ -10,6 +10,8 @@ class ErrorSystem:
         self.silent = []
         self.script = script
         self.constants_module = None
+        self.show_warnings = True
+        self.show_errors = True
 
     def throw_errors(self):
         exit_program = False
@@ -17,6 +19,8 @@ class ErrorSystem:
         for e in self.errors:
             if e.code in FATAL_ERRORS:
                 exit_program = True
+
+            if not self.show_errors: continue
             print("(Error) " + e.get_msg() + "\n")
 
         self.errors = []
@@ -28,6 +32,8 @@ class ErrorSystem:
         for w in self.warnings:
             if w.code in [None]:
                 exit_program = True
+
+            if not self.show_warnings: continue
             print("(Warning) " + w.get_msg() + "\n")
 
         self.warnings = []
