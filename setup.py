@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "BeeNary",
-    version = "1.1.0",
+    version = "1.1.6",
     description = "This package contains the interpreter for the toy language BeeNary.",
     author = "LePhobix",
     author_email = "code4beenary.gmail.com",

@@ -2,6 +2,9 @@
 # TOKEN types
 #####################################################
 
+from gzip import READ
+
+
 T_IDENTIFIER            = 0xa01
 T_KEYWORD               = 0xa02
 T_TOKEN                 = 0xa03
@@ -24,6 +27,7 @@ T_QUOTE                 = 0xa19
 T_SYMBOL                = 0xa20
 T_NEWLINE               = 0xa21
 T_WHITESPACE            = 0xa22
+T_ADD                   = 0xa23
 
 #####################################################
 # NODE types
@@ -38,6 +42,7 @@ N_HIVE                  = 0xb06
 N_VALUE                 = 0xb07
 N_PARAM                 = 0xb08
 N_LIB                   = 0xb09
+N_ADDTOKEN              = 0xb10
 
 #####################################################
 # NODE properties
@@ -78,6 +83,11 @@ ALWAYS_TRUE             = 0xc32
 ALWAYS_FALSE            = 0xc33
 OBJECT                  = 0xc34
 OTHER                   = 0xc35
+ADDTOKEN                = 0xc36
+ONETIME                 = 0xc37
+THREADED                = 0xc38
+READONLY                = 0xc39
+AWAIT                   = 0xc40
 
 #####################################################
 # ERROR codes
@@ -224,10 +234,11 @@ def get_token_type_str(type):
     if type is T_QUOTE:                 return "QUOTE"             
     if type is T_SYMBOL:                return "SYMBOL" 
     if type is T_NEWLINE:               return "NEWLINE"
-    if type is T_WHITESPACE:            return "WHITESPACE"           
+    if type is T_WHITESPACE:            return "WHITESPACE"
+    if type is T_ADD:                   return "ADD"           
 
 def get_node_type_to_str(type):
-    if type is N_TOKEN:                 return "TOKEN"    
+    if type is N_TOKEN:                 return "TOKEN"  
     if type is N_FUNCTION:              return "FUNCTION" 
     if type is N_SECTION:               return "SECTION"  
     if type is N_START:                 return "START"    
@@ -236,6 +247,7 @@ def get_node_type_to_str(type):
     if type is N_VALUE:                 return "VALUE"    
     if type is N_PARAM:                 return "PARAM"
     if type is N_LIB:                   return "LIB"    
+    if type is N_ADDTOKEN:              return "ADDTOKEN"
 
 def get_node_property_to_str(property):
     if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
@@ -272,7 +284,12 @@ def get_node_property_to_str(property):
     if property is LOADED:              return "LOADED"        
     if property is ALWAYS_TRUE:         return "ALWAYS_TRUE"  
     if property is ALWAYS_FALSE:        return "ALWAYS_FALSE" 
-    if property is OBJECT:              return "OBJECT"     
+    if property is OBJECT:              return "OBJECT"  
+    if property is ADDTOKEN:            return "ADDTOKEN"   
+    if property is READONLY:            return "READONLY"   
+    if property is THREADED:            return "THREADED"   
+    if property is ONETIME:             return "ONETIME"
+    if property is AWAIT:               return "AWAIT"
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -282,7 +299,19 @@ def get_node_property_by_value(str_value):
     if str_value == "meadow":           return MEADOW      
     if str_value == "end":              return END         
     if str_value == "trace":            return TRACE       
-    if str_value == "hive":             return HIVE  
+    if str_value == "hive":             return HIVE 
+
+def get_addtoken_property_by_value(str_value):
+    if str_value == "readonly":         return READONLY
+    if str_value == "threaded":         return THREADED
+    if str_value == "onetime":          return ONETIME
+    if str_value == "await":            return AWAIT
+
+def get_addtoken_property_to_str(type):
+    if type is READONLY:                return "readonly"
+    if type is THREADED:                return "threaded"
+    if type is ONETIME:                 return "onetime"
+    if type is AWAIT:                   return "await"
 
 def get_value_type_to_lib_value_type(type):
     if type is INT:                     return L_INT
@@ -309,7 +338,7 @@ def get_lib_value_type_to_str(type):
 
 IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
 NUMBER_CHARS = '-0123456789'
-VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#\" '
+VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#@\" '
 KEYWORDS = [
     "true",
     "false",
@@ -342,6 +371,12 @@ BUILTIN_FUNCTION = [
     "wax",
     "sting",
     "take"
+]
+ADDTOKENS = [
+    "readonly",
+    "threaded",
+    "onetime",
+    "await"
 ]
 FATAL_ERRORS = [
     VARIABLE_NOT_FOUND_EXCEPTION,       

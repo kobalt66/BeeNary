@@ -1,5 +1,5 @@
 from src.classes import system
-from math import sqrt as math_sqrt, sin as math_sin, sinh as math_sinh, asin as math_arcsin, tan as math_tan, tanh as math_tanh, atan as math_arctan, cos as math_cos, cosh as math_cosh, acos as math_arccos
+from numpy import sqrt as math_sqrt, sinc as math_sin, sinh as math_sinh, arcsin as math_arcsin, tanh as math_tan, arctan as math_arctan, cosh as math_cos, arccos as math_arccos
 import src.constants as c
 
 to_int = int
@@ -84,12 +84,7 @@ def pow(params):
     try:
         a = params[0]
         b = params[1]
-
-        res = 1
-        for i in range(b):
-            res *= a
-
-        return res
+        return a ** b
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
@@ -182,16 +177,6 @@ def tan(params):
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
 
-tanh_arg_count = 1
-tanh_arg_types = [c.L_NUMBER]
-def tanh(params):
-    try:
-        num = params[0]
-        return math_tanh(num)
-    except Exception as e:
-        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        sys.cast_all_exceptions()
-
 arctan_arg_count = 1
 arctan_arg_types = [c.L_NUMBER]
 def arctan(params):
@@ -208,16 +193,6 @@ def cos(params):
     try:
         num = params[0]
         return math_cos(num)
-    except Exception as e:
-        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
-        sys.cast_all_exceptions()
-
-cosh_arg_count = 1
-cosh_arg_types = [c.L_NUMBER]
-def cosh(params):
-    try:
-        num = params[0]
-        return math_cosh(num)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
@@ -505,7 +480,7 @@ def flyout_vector(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
-
+ 
 mat2X2_identity_arg_count = 0
 mat2X2_identity_arg_types = []
 def mat2X2_identity(params):

@@ -70,6 +70,10 @@ start:
 #    inv add<1, 1> is not 2 flyout "Math works"
 #    other flyout_matrix<mat2X2_identity<>>
 
-flyout add<1, 1>
+#    flyout add<add<add<111, 111>, add<111, 111>>, 1>
+#    _list honey list<1, 2, 3, 4, 5, 6, "", 8, 9, 10>
+#    flyout lengthof<_list>
+#    a honey ""
+#    flyout a
 
 :end:

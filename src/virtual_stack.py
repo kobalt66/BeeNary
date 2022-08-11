@@ -1,6 +1,3 @@
-from logging import exception
-
-
 try:        from constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
 except:     from src.constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
 try:        from constants import STACK

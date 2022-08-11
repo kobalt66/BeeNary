@@ -1,5 +1,6 @@
-import io, os
+import io, os, threading
 import sys as s
+from time import sleep
 
 try:        from constants import *
 except:     from src.constants import *
@@ -75,6 +76,63 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
         print("\n")
     
 
+def run_compiled(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
+    global sys
+    sys = system(code, argv1)
+
+    if argv1 == "-help":
+        sys.process_help_flag(argv2)
+        exit(0)
+
+    sys.process_argv(argv2)
+    sys.process_argv(argv3)
+    sys.process_argv(argv4)
+    sys.process_argv(argv5)
+    sys.process_argv(argv6)
+    sys.process_argv(argv7)
+    sys.process_argv(argv8)
+    sys.process_argv(argv9)
+    sys.process_argv(argv10)
+
+    lexer = Lexer(code)
+    tokens = lexer.Phase1()
+    tokens = lexer.Phase2()
+    tokens_final = lexer.get_final_token_list(tokens)
+
+    parser = Parser(tokens_final)
+    nodes = parser.Parse()
+
+    sortout = Sortout(nodes)
+    sorted_nodes = sortout.Phase1()
+    sorted_nodes = sortout.Phase2()
+    sorted_nodes = sortout.Phase3()
+    sorted_nodes = sortout.Finish()
+
+    compiler = Compiler(sorted_nodes)
+    compiler.compile()
+
+    if sys.show_tokens:
+        print("\n\nTOKENS:")
+        for token in tokens:
+            str = token.to_str(sys)
+            if str: print(str)
+        print("\n")
+
+    if sys.show_nodes:
+        print("\n\nNODES:")
+        for node in nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
+    
+    if sys.show_sorted_nodes:
+        print("\n\nSORTED NODES:")
+        for node in sorted_nodes:
+            str = node.to_str(sys)
+            if str: print(str)
+        print("\n")
+
+
 def get_code(path):
     global sys
     if path == "-help": return ""
@@ -138,6 +196,9 @@ class Lexer:
             elif self.currChar == '>':
                 self.tokens.append(token(T_GT, '>', self.ln))
                 if self.advance(): break
+            elif self.currChar == '@':
+                self.tokens.append(token(T_ADD, '>', self.ln))
+                if self.advance(): break
             elif self.currChar == '#':
                 self.tokens.append(self.comment())
             elif self.currChar == '"':
@@ -190,9 +251,10 @@ class Lexer:
     
     def string(self):
         self.advance()
-        str_value = self.currChar
         condition = lambda: True if not self.currChar in '"\n' else False
-
+        if self.currChar in '"\n': return token(T_STRING, '', self.ln)
+    
+        str_value = self.currChar
         while self.advance_condition(condition):
             str_value += self.currChar
 
@@ -366,7 +428,7 @@ class Lexer:
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.expression_types       = [T_IDENTIFIER, T_STRING, T_BOOL, T_INT, T_FLOAT, T_KEYWORD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
+        self.expression_types       = [T_IDENTIFIER, T_STRING, T_BOOL, T_INT, T_FLOAT, T_KEYWORD, T_ADD, T_BUILTIN_FUNCTION, T_EXTERN_FUNCTION]
         self.section_types          = [T_SECTION, T_START]
         self.token_types            = [T_TOKEN, T_HIVE, T_END]
         self.member_value_types     = [TOKEN, INT, FLOAT, STRING, BOOL]
@@ -380,6 +442,7 @@ class Parser:
         self.idx = 0
 
     def Parse(self):
+        
         while self.idx < len(self.tokens):
             currToken = self.tokens[self.idx]
 
@@ -437,6 +500,8 @@ class Parser:
                 return self.token(tokens)
             elif currToken.typeof(T_KEYWORD):
                 return self.keyword(tokens)
+            elif currToken.typeof(T_ADD):
+                return self.addToken(tokens)
             elif currToken.typeof(T_NEWLINE):
                 return None
         except:
@@ -448,6 +513,22 @@ class Parser:
         type = N_START if section.typeof(T_START) else N_SECTION
         value = self.simple_identifier(section)
         return node(type, section.ln, properties, value=value)
+
+    def addToken(self, tokens):
+        try:
+            add = tokens[self.idx]
+
+            self.idx += 1
+            followed_by = self.expr(tokens)
+            if not followed_by or not followed_by.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "A valid identifier must follow an '@' character", add.ln)
+            elif not followed_by.ptr in ADDTOKENS:
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The addtoken of type '{followed_by.ptr}' is not valid.", add.ln)
+
+            properties = [BUILTIN, ADDTOKEN]
+            return node(N_ADDTOKEN, add.ln, properties, value = followed_by)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
 
     def keyword(self, tokens):
         keyword = tokens[self.idx]
@@ -723,13 +804,19 @@ class Parser:
 class Sortout:
     def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None, sections = None):
         self.nodes = nodes
+
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
+        self.stack_objects = [SECTION, WAX]
+        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
+        self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
+        self.valid_onetime_expressions = [HONEY]
+        self.valid_threaded_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
+        self.valid_await_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
+        self.valid_readonly_expressions = [HONEY]
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
-        self.stack_objects = [SECTION, WAX]
-        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
@@ -744,6 +831,7 @@ class Sortout:
         nodes = self.Sortout_param_check(self.nodes)
         nodes = self.libraries(nodes)
         nodes = self.Sortout_inv(nodes)
+        nodes = self.Sortout_addtoken(nodes)
         nodes = self.Sortout_others(nodes)
         self.nodes = nodes
         return self.nodes
@@ -751,14 +839,19 @@ class Sortout:
     def Sortout_param_check(self, nodes):
         for n in nodes:
             if n.has_property(TOKEN):
-                if n.params and len(n.params) > 1 and n.has_property(END):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT,  "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif not n.params and any(p in self.tokens_with_parmas for p in n.properties):
+                has_params = True if n.params else False
+                if has_params: param_len = len(n.params)
+                
+                if has_params:
+                    if param_len > 1:
+                        if n.has_property(END):
+                            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT,  "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
+                        elif any(p in self.tokens_with_parmas for p in n.properties):
+                            sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
+                    elif not n.has_property(END) and not n.has_property(HONEYCOMB) and not any(p in self.tokens_with_parmas for p in n.properties):
+                        sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
+                elif any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
-                elif n.params and len(n.params) > 1 and any(p in self.tokens_with_parmas for p in n.properties):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] can only have one argument.", n.ln)
-                elif n.params and not any(p in self.tokens_with_parmas for p in n.properties) and not n.has_property(END) and not n.has_property(HONEYCOMB):
-                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -848,12 +941,62 @@ class Sortout:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         return updated_nodes
 
+    def Sortout_addtoken(self, nodes):
+        updated_nodes = []
+        
+        addtoken = None
+        type = None
+        valid = True
+        for n in nodes:
+            if addtoken:
+                type = get_addtoken_property_by_value(addtoken.value.ptr)
+                if any(p in self.valid_addtoken_expressions for p in n.properties):                    
+                    if type is ONETIME:
+                        if not any(p in self.valid_onetime_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is THREADED:
+                        if not any(p in self.valid_threaded_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is READONLY:
+                        if not any(p in self.valid_readonly_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is AWAIT:
+                        if not any(p in self.valid_threaded_expressions for p in n.properties):
+                            valid = False
+                            break
+
+                    n.add_property(type)
+                else:
+                    updated_nodes.append(addtoken)
+                    updated_nodes.append(n)
+                    
+                addtoken = None
+
+            if n.has_property(ADDTOKEN):
+                addtoken = n
+                continue
+
+            updated_nodes.append(n)
+            
+        if not valid:
+            sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, f"The @-token of type '{get_addtoken_property_to_str(type)}' cannot be applied to an expression with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "].", n.ln)
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)
+        return updated_nodes
+
     def Sortout_others(self, nodes):
         start_section = False
         hive_start = False
         inside_hive = False
         hive_end = False
         for n in nodes:
+            if n.has_property(ADDTOKEN):
+                sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "There cannot be a single @-token somewhere in the script.", n.ln)
             if n.has_property(SECTION):
                 if not n.value.ptr in self.sections:
                     self.sections.append(n.value.ptr)
@@ -986,7 +1129,7 @@ class Sortout:
     
         self.Phase3_expr(left)
         self.Phase3_expr(right)
-        self.Phase3_expr(expr, True if currNode.has_property(ALWAYS_TRUE) else False)
+        if currNode.has_property(ALWAYS_TRUE): self.Phase3_expr(expr, True)
 
     def Phase3_flyout(self, currNode):
         value = currNode.value
@@ -1232,16 +1375,28 @@ class Interpreter:
 
     def expression(self, currNode):
         if any(p in self.function_properties for p in currNode.properties):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
+                threading.Thread(target=self.functions, args=[currNode]).start()
+                return
             self.functions(currNode)
         elif currNode.has_property(TOKEN):
             self.tokens(currNode)
         elif currNode.has_property(HONEY):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
+                threading.Thread(target=self.honey, args=[currNode]).start()
+                return
             self.honey(currNode)
         elif currNode.has_property(STICK):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
+                threading.Thread(target=self.stick, args=[currNode]).start()
+                return
             self.stick(currNode)
         elif currNode.has_property(HONEYPOT):
             self.honeypot(currNode)
         elif currNode.has_property(EXTERN):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
+                threading.Thread(target=self.extern, args=[currNode]).start()
+                return
             self.extern(currNode)
         elif currNode.typeof(N_LIB):
             if not currNode.has_property(LOADED):
@@ -1250,7 +1405,7 @@ class Interpreter:
 
     def functions(self, currNode):
         if currNode.has_property(FLYOUT):
-            value = self.extract_value(currNode.value)
+            value = self.extract_value(currNode.value, True if currNode.has_property(AWAIT) else False)
             if not value:
                 sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to flyout to doesn't carry a value. Thus you cannot use the object as a value.", currNode.ln)
                 self.should_exit = True
@@ -1284,16 +1439,17 @@ class Interpreter:
             func_name = function.__name__
             arg_count = sys.get_function_arg_count(func_name)
 
-            if len(params) < arg_count:
-                sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
-                self.should_exit = True
-                return None
-            elif len(params) > arg_count:
-                sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
-                self.should_exit = True
-                return None
+            if not arg_count == -1: 
+                if len(params) < arg_count:
+                    sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects {arg_count} arguments instead of just {len(params)} arguments.", currNode.ln)
+                    self.should_exit = True
+                    return None
+                elif len(params) > arg_count:
+                    sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, f"The extern function '{func_name}' expects only {arg_count} arguments instead of {len(params)} arguments.", currNode.ln)
+                    self.should_exit = True
+                    return None
 
-            check = self.validate_arg_types(func_name, params, currNode.ln)
+            check = self.validate_arg_types(func_name, params, currNode.ln, True if currNode.has_property(AWAIT) else False)
             if not check: return None
 
             final_params = self.translate_params_to_lib_format(currNode)
@@ -1322,7 +1478,7 @@ class Interpreter:
 
     def honey(self, currNode):
         honey = currNode.copy()
-        value = self.extract_value(honey.value)
+        value = self.extract_value(honey.value, True if currNode.has_property(AWAIT) else False)
         ptr = honey.child.ptr
         honey.value = value
 
@@ -1333,12 +1489,15 @@ class Interpreter:
             honey.add_property(EXTERN)
 
         if sys.virtual_stack.isset(ptr):
+            if sys.virtual_stack.get_var_by_ptr(ptr).has_property(READONLY):
+                sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, STACK, f"The variable '{ptr}' is marked as readonly and thus a constant.", currNode.ln)
+                return
             sys.virtual_stack.set_var(honey)
         else:
             sys.virtual_stack.init_var(honey)
 
     def stick(self, currNode):
-        value = self.extract_value(currNode.value)
+        value = self.extract_value(currNode.value, True if currNode.has_property(AWAIT) else False)
         ptr = currNode.child.ptr
         currNode.value = value
         sys.virtual_stack.stack[ptr].child.append(value)
@@ -1392,60 +1551,92 @@ class Interpreter:
         right = currNode.child[1]
 
         self.every_data = True
-        value_left = self.extract_lib_value(self.extract_value(left))
-        value_right = self.extract_lib_value(self.extract_value(right))
+        value_left = self.extract_lib_value(self.extract_value(left, True if currNode.has_property(AWAIT) else False))
+        value_right = self.extract_lib_value(self.extract_value(right, True if currNode.has_property(AWAIT) else False))
         self.every_data = False
+
+        if not value_left:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The left condition value doesn't carry any value. Thus it cannot be compared to the right condition value.", currNode.ln)
+            self.should_exit = True
+            return
+        if not value_right:
+            sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The right condition value doesn't carry any value. Thus it cannot be compared to the left condition value.", currNode.ln)
+            self.should_exit = True
+            return
 
         condition_succeded = False
         if currNode.has_operator("is"):
             if not_condition:
                 if not value_left == value_right:
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
             else:
                 if value_left == value_right:
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
         elif currNode.has_operator("in"):
             if not_condition:
                 if not any(item is value_left for item in value_right):
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
             else:
                 if any(item is value_left for item in value_right):
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
 
         if not condition_succeded and currNode.has_property(OTHER):
-           self.expression(currNode.child[2].value)
+            if currNode.has_property(AWAIT): currNode.child[2].value.add_property(AWAIT)
+            self.expression(currNode.child[2].value)
 
     def validate_list_idx(self, list, param, ln):
         idx = -1
+        check = True
         idx_value = param.value if not param.has_property(IDENTIFIER) else self.extract_value(param).value
         try: idx = int(idx_value) 
         except Exception as e:
             sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, "A list identifier only excepts a number as it's parameter.", ln)
             self.should_exit = True
+            check = False
         
         if idx > (len(list) - 1) or idx < 0:
             sys.error_system.create_error(INDEX_OUT_OF_RANGE_EXCEPTION, INTERPRETING, "The idx was outside the range of the list you tried to access.", ln)
             self.should_exit = True
+            check = False
         
-        return not self.should_exit, idx
+        return check, idx
 
-    def validate_arg_types(self, func_name, params, ln):
+    def validate_arg_types(self, func_name, params, ln, _await=False):
+        check = True
+        arg_count = sys.get_function_arg_count(func_name)
         arg_types = sys.get_function_arg_types(func_name)
+
+        if arg_count == -1:
+            param_types = []
+            for p in params:
+                if p.has_property(IDENTIFIER):
+                    p = self.extract_value(p, _await)
+
+                for property in p.properties:
+                    type = get_value_type_to_lib_value_type(property)
+                    if type: param_types.append(type)
+
+            if not arg_types[0] == L_ANY:
+                if not all(type == arg_types[0] for type in param_types):
+                    sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"All parameters have to be of type {get_lib_value_type_to_str(arg_types[0])}.", ln)
+                    self.should_exit = True
+                    check = False
+            return check
 
         idx = 0
         for p in params:
             if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
-                if p.has_property(EXTERN):
-                    p = self.extract_value(p)
-                else:
-                    p = sys.virtual_stack.get_var(p)
-                    p = self.extract_value(p)
+                p = self.extract_value(p, _await)
 
             param_types = []
             for property in p.properties:
@@ -1456,14 +1647,16 @@ class Interpreter:
                 if not any(type in [L_INT, L_FLOAT] for type in param_types):
                     sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
                     self.should_exit = True
+                    check = False
             else:
                 if not any(type == arg_types[idx] for type in param_types):
                     sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, INTERPRETING, f"The {idx + 1}. parameter has to be of type {get_lib_value_type_to_str(arg_types[idx])}.", ln)
                     self.should_exit = True
+                    check = False
 
             idx += 1
         
-        return not self.should_exit
+        return check
 
     def translate_params_to_lib_format(self, currNode):
         types = self.regular_values
@@ -1490,7 +1683,7 @@ class Interpreter:
         return final_params
 
     def translate_return_to_node_format(self, return_value, ln):
-        if type(return_value) in [int, float, str, bool]:
+        if isinstance(return_value, (int, float, str, bool)):
             return self.regular_value_to_node(return_value, ln)
         if isinstance(return_value, list) or isinstance(return_value, tuple):
             final_list = [self.regular_value_to_node(v, ln) for v in list(return_value)]
@@ -1509,23 +1702,31 @@ class Interpreter:
         if isinstance(return_value, str):
             return parser.string(str(return_value), ln)
 
-    def extract_value(self, value):
+    def extract_value(self, value, _await=False):
         if hasattr(value, "__call__"):
             return Parser(None).string(f"{value.__name__}: [ <object> function ]", -1)
 
         if value.has_property(HONEY):
+            if value.has_property(ONETIME):
+                sys.virtual_stack.del_var(value.child)
             return value.value
         elif value.has_property(HONEYPOT):
             if not value.params and not self.every_data:
                 return Parser(None).string(f"{value.value.ptr}: [ <object> honeypot ]", value.ln)
             return value
         elif value.has_property(EXTERN):
+            if _await: value.add_property(AWAIT)
             return self.extern(value)
         elif value.has_property(WAX):
             return self.extract_value(value.value)
         elif value.has_property(IDENTIFIER):
+            if _await:
+                while (True):
+                    if sys.virtual_stack.isset(value): break            
+                    sleep(.25)
+
             value = sys.virtual_stack.get_var(value)
-            value = self.extract_value(value)
+            value = self.extract_value(value, _await)
             return value
         elif value.has_property(TOKEN):
             token = self.tokens(value)
@@ -1604,4 +1805,40 @@ class Interpreter:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         sys.error_system.script = script
         self.in_library = False
-            
+
+
+class Compiler:
+    def __init__(self, nodes):
+        self.nodes = nodes
+        self.script = ""
+        self.script_path = "./a.asm"
+        self.obj_path = "./a.bin"
+
+    def create_script(self):
+        if os.path.exists(self.script_path):
+            os.remove(self.script_path)
+
+        with open(self.script_path, "x") as file:
+            file.write(self.script)
+            file.close()
+
+        os.system("nasm -f bin a.asm -o a.bin")
+        os.system("chmod +x a.bin")
+        os.system("./a.bin")
+
+        #if os.path.exists(self.obj_path):
+        #    os.remove(self.obj_path)
+
+    def compile(self):
+        self.script = """section .data
+    text db "Hello, World!",10
+ 
+section .text
+    global _start
+ 
+_start:
+    mov ah, 0x0e
+    mov al, [text]
+    int 0x10
+        """
+        self.create_script()

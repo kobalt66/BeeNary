@@ -46,7 +46,7 @@ class node:
         self.operators = operators
         self.ptr = "" # Pointer address to a node on the stack
         self.idx = 0
-        
+
     def get_param_to_str(self, param):
         if param.has_property(IDENTIFIER):
             return param.ptr
@@ -139,16 +139,18 @@ class system:
         self.show_stack_objects = False
 
         self.flags = {
-            "-t"  : "-t\tToggle token printing.", 
-            "-nl" : "-nl\tToggle newline printing.",
-            "-ws" : "-ws\tToggle whitespace printing.",
-            "-sw" : "-sw\tShow silent warnings.",
-            "-n"  : "-n\tToggle node printing.",
-            "-np" : "-np\tToggle node property printing.",
-            "-cp" : "-cp\tToggle property printing of a child node.",
-            "-pa" : "-pa\tToggle node parameter printing.",
-            "-sn" : "-sn\tToggle sorted node printing.",
-            "-vs" : "-vs\tToggle virtual stack printing."
+            "-t"            : "-t\tToggle token printing.", 
+            "-nl"           : "-nl\tToggle newline printing.",
+            "-ws"           : "-ws\tToggle whitespace printing.",
+            "-sw"           : "-sw\tShow silent warnings.",
+            "-n"            : "-n\tToggle node printing.",
+            "-np"           : "-np\tToggle node property printing.",
+            "-cp"           : "-cp\tToggle property printing of a child node.",
+            "-pa"           : "-pa\tToggle node parameter printing.",
+            "-sn"           : "-sn\tToggle sorted node printing.",
+            "-vs"           : "-vs\tToggle virtual stack printing.",
+            "--nowarnings"  : "--nowarnings\tTurn off warnings.",
+            "--noerrors"    : "--noerrors\tTurn off errors." 
         }
 
     def cast_all_exceptions(self):
@@ -195,6 +197,12 @@ class system:
             self.show_sorted_nodes = True
         elif argv == "-vs":
             self.show_stack_objects = True
+        elif argv == "--nowarnings":
+            self.error_system.show_warnings = False
+            if self.virtual_stack: self.virtual_stack.sys.error_system.show_warnings = False
+        elif argv == "--noerrors":
+            self.error_system.show_errors = False
+            if self.virtual_stack: self.virtual_stack.sys.error_system.show_errors = False
 
         self.error_system.throw_errors()
         self.error_system.throw_warnings()
