@@ -1,5 +1,6 @@
 import io, os, threading
 import sys as s
+from time import sleep
 
 try:        from constants import *
 except:     from src.constants import *
@@ -811,6 +812,7 @@ class Sortout:
         self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_onetime_expressions = [HONEY]
         self.valid_threaded_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
+        self.valid_await_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_readonly_expressions = [HONEY]
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
@@ -959,6 +961,10 @@ class Sortout:
                             break
                     elif type is READONLY:
                         if not any(p in self.valid_readonly_expressions for p in n.properties):
+                            valid = False
+                            break
+                    elif type is AWAIT:
+                        if not any(p in self.valid_threaded_expressions for p in n.properties):
                             valid = False
                             break
 
@@ -1123,7 +1129,7 @@ class Sortout:
     
         self.Phase3_expr(left)
         self.Phase3_expr(right)
-        self.Phase3_expr(expr, True if currNode.has_property(ALWAYS_TRUE) else False)
+        if currNode.has_property(ALWAYS_TRUE): self.Phase3_expr(expr, True)
 
     def Phase3_flyout(self, currNode):
         value = currNode.value
@@ -1369,26 +1375,26 @@ class Interpreter:
 
     def expression(self, currNode):
         if any(p in self.function_properties for p in currNode.properties):
-            if currNode.has_property(THREADED):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
                 threading.Thread(target=self.functions, args=[currNode]).start()
                 return
             self.functions(currNode)
         elif currNode.has_property(TOKEN):
             self.tokens(currNode)
         elif currNode.has_property(HONEY):
-            if currNode.has_property(THREADED):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
                 threading.Thread(target=self.honey, args=[currNode]).start()
                 return
             self.honey(currNode)
         elif currNode.has_property(STICK):
-            if currNode.has_property(THREADED):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
                 threading.Thread(target=self.stick, args=[currNode]).start()
                 return
             self.stick(currNode)
         elif currNode.has_property(HONEYPOT):
             self.honeypot(currNode)
         elif currNode.has_property(EXTERN):
-            if currNode.has_property(THREADED):
+            if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
                 threading.Thread(target=self.extern, args=[currNode]).start()
                 return
             self.extern(currNode)
@@ -1399,7 +1405,7 @@ class Interpreter:
 
     def functions(self, currNode):
         if currNode.has_property(FLYOUT):
-            value = self.extract_value(currNode.value)
+            value = self.extract_value(currNode.value, True if currNode.has_property(AWAIT) else False)
             if not value:
                 sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, f"The object you tried to flyout to doesn't carry a value. Thus you cannot use the object as a value.", currNode.ln)
                 self.should_exit = True
@@ -1443,7 +1449,7 @@ class Interpreter:
                     self.should_exit = True
                     return None
 
-            check = self.validate_arg_types(func_name, params, currNode.ln)
+            check = self.validate_arg_types(func_name, params, currNode.ln, True if currNode.has_property(AWAIT) else False)
             if not check: return None
 
             final_params = self.translate_params_to_lib_format(currNode)
@@ -1472,7 +1478,7 @@ class Interpreter:
 
     def honey(self, currNode):
         honey = currNode.copy()
-        value = self.extract_value(honey.value)
+        value = self.extract_value(honey.value, True if currNode.has_property(AWAIT) else False)
         ptr = honey.child.ptr
         honey.value = value
 
@@ -1491,7 +1497,7 @@ class Interpreter:
             sys.virtual_stack.init_var(honey)
 
     def stick(self, currNode):
-        value = self.extract_value(currNode.value)
+        value = self.extract_value(currNode.value, True if currNode.has_property(AWAIT) else False)
         ptr = currNode.child.ptr
         currNode.value = value
         sys.virtual_stack.stack[ptr].child.append(value)
@@ -1545,8 +1551,8 @@ class Interpreter:
         right = currNode.child[1]
 
         self.every_data = True
-        value_left = self.extract_lib_value(self.extract_value(left))
-        value_right = self.extract_lib_value(self.extract_value(right))
+        value_left = self.extract_lib_value(self.extract_value(left, True if currNode.has_property(AWAIT) else False))
+        value_right = self.extract_lib_value(self.extract_value(right, True if currNode.has_property(AWAIT) else False))
         self.every_data = False
 
         if not value_left:
@@ -1562,24 +1568,29 @@ class Interpreter:
         if currNode.has_operator("is"):
             if not_condition:
                 if not value_left == value_right:
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
             else:
                 if value_left == value_right:
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
         elif currNode.has_operator("in"):
             if not_condition:
                 if not any(item is value_left for item in value_right):
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
             else:
                 if any(item is value_left for item in value_right):
+                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
                     self.expression(currNode.value)
                     condition_succeded = True
 
         if not condition_succeded and currNode.has_property(OTHER):
-           self.expression(currNode.child[2].value)
+            if currNode.has_property(AWAIT): currNode.child[2].value.add_property(AWAIT)
+            self.expression(currNode.child[2].value)
 
     def validate_list_idx(self, list, param, ln):
         idx = -1
@@ -1598,7 +1609,7 @@ class Interpreter:
         
         return check, idx
 
-    def validate_arg_types(self, func_name, params, ln):
+    def validate_arg_types(self, func_name, params, ln, _await=False):
         check = True
         arg_count = sys.get_function_arg_count(func_name)
         arg_types = sys.get_function_arg_types(func_name)
@@ -1606,6 +1617,9 @@ class Interpreter:
         if arg_count == -1:
             param_types = []
             for p in params:
+                if p.has_property(IDENTIFIER):
+                    p = self.extract_value(p, _await)
+
                 for property in p.properties:
                     type = get_value_type_to_lib_value_type(property)
                     if type: param_types.append(type)
@@ -1622,11 +1636,7 @@ class Interpreter:
             if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
-                if p.has_property(EXTERN):
-                    p = self.extract_value(p)
-                else:
-                    p = sys.virtual_stack.get_var(p)
-                    p = self.extract_value(p)
+                p = self.extract_value(p, _await)
 
             param_types = []
             for property in p.properties:
@@ -1692,7 +1702,7 @@ class Interpreter:
         if isinstance(return_value, str):
             return parser.string(str(return_value), ln)
 
-    def extract_value(self, value):
+    def extract_value(self, value, _await=False):
         if hasattr(value, "__call__"):
             return Parser(None).string(f"{value.__name__}: [ <object> function ]", -1)
 
@@ -1705,12 +1715,18 @@ class Interpreter:
                 return Parser(None).string(f"{value.value.ptr}: [ <object> honeypot ]", value.ln)
             return value
         elif value.has_property(EXTERN):
+            if _await: value.add_property(AWAIT)
             return self.extern(value)
         elif value.has_property(WAX):
             return self.extract_value(value.value)
         elif value.has_property(IDENTIFIER):
+            if _await:
+                while (True):
+                    if sys.virtual_stack.isset(value): break            
+                    sleep(.25)
+
             value = sys.virtual_stack.get_var(value)
-            value = self.extract_value(value)
+            value = self.extract_value(value, _await)
             return value
         elif value.has_property(TOKEN):
             token = self.tokens(value)

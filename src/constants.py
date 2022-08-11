@@ -87,6 +87,7 @@ ADDTOKEN                = 0xc36
 ONETIME                 = 0xc37
 THREADED                = 0xc38
 READONLY                = 0xc39
+AWAIT                   = 0xc40
 
 #####################################################
 # ERROR codes
@@ -288,6 +289,7 @@ def get_node_property_to_str(property):
     if property is READONLY:            return "READONLY"   
     if property is THREADED:            return "THREADED"   
     if property is ONETIME:             return "ONETIME"
+    if property is AWAIT:               return "AWAIT"
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -303,11 +305,13 @@ def get_addtoken_property_by_value(str_value):
     if str_value == "readonly":         return READONLY
     if str_value == "threaded":         return THREADED
     if str_value == "onetime":          return ONETIME
+    if str_value == "await":            return AWAIT
 
 def get_addtoken_property_to_str(type):
     if type is READONLY:                return "readonly"
     if type is THREADED:                return "threaded"
     if type is ONETIME:                 return "onetime"
+    if type is AWAIT:                   return "await"
 
 def get_value_type_to_lib_value_type(type):
     if type is INT:                     return L_INT
@@ -371,7 +375,8 @@ BUILTIN_FUNCTION = [
 ADDTOKENS = [
     "readonly",
     "threaded",
-    "onetime"
+    "onetime",
+    "await"
 ]
 FATAL_ERRORS = [
     VARIABLE_NOT_FOUND_EXCEPTION,       

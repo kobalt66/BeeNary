@@ -53,3 +53,6 @@ wax list :python<"python.std">:
 
 :functionptr:
 wax lengthof :python<"python.std">:
+
+:functionptr:
+wax sleep :python<"python.std">:

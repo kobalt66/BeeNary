@@ -10,4 +10,4 @@ delay_arg_types = [c.L_STRING]
 def delay(params):
     time.sleep(5)
     print(params[0])
-    return True
+    return 1

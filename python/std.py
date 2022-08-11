@@ -1,7 +1,7 @@
 from src.classes import system
 import src.constants as c
 import sys as s
-import os, os.path, shutil
+import os, os.path, shutil, time
 
 list_type = list
 sys = system("", "std.b", True)
@@ -197,3 +197,13 @@ def lengthof(params):
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False
+
+sleep_arg_count = 1
+sleep_arg_types = [c.L_NUMBER]
+def sleep(params):
+    try:
+        num = params[0]
+        time.sleep(num)
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
