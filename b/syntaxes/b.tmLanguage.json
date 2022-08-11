@@ -49,7 +49,7 @@
 		"addtokens": {
 			"patterns": [{
 				"name": "entity.other.inherited-class",
-				"match": "\\b(?<=@)(onetime|threaded|readonly)\\b"
+				"match": "\\b(?<=@)(onetime|threaded|readonly|await)\\b"
 			}]
 		},
 		"chars": {
