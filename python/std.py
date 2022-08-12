@@ -1,7 +1,7 @@
 from src.classes import system
 import src.constants as c
 import sys as s
-import os, os.path, shutil, time
+import os, os.path, shutil, time, re
 
 list_type = list
 sys = system("", "std.b", True)
@@ -207,3 +207,29 @@ def sleep(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
+
+replace_regex_arg_count = 3
+replace_regex_arg_types = [c.L_STRING, c.L_STRING, c.L_STRING]
+def replace_regex(params):
+    try:
+        regex       = params[0]
+        original    = params[1]
+        replacement = params[2]
+        return re.sub(regex, replacement, original)
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
+
+get_regex_arg_count = 2
+get_regex_arg_types = [c.L_STRING, c.L_STRING]
+def get_regex(params):
+    try:
+        regex  = params[0]
+        string = params[1]
+        res = re.compile(regex).findall(string)
+        return res
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False 

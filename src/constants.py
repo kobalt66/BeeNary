@@ -332,6 +332,16 @@ def get_lib_value_type_to_str(type):
     if type == L_LIST:                  return "LIST"
     if type == L_ANY:                   return "ANY"
 
+def get_value_of_node(value):
+    if value.has_property(INT):
+        return int(value.value)
+    if value.has_property(FLOAT):
+        return float(value.value)
+    if value.has_property(BOOL):
+        return True if value.value == "true" else False
+    if value.has_property(STRING):
+        return value.value
+        
 #####################################################
 # INTERPRETER stuff
 #####################################################

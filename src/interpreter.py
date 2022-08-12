@@ -747,7 +747,7 @@ class Parser:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
     def string(self, str_value, ln):
-        return node(N_VALUE, ln, [STRING], value=str_value)
+        return node(N_VALUE, ln, [STRING], value=str_value.replace("[CURRDIR]", os.getcwd()).replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r"))
     
     def number(self, type, number, ln):
         property = INT if type is T_INT else FLOAT
@@ -865,7 +865,6 @@ class Sortout:
             if n.has_property(SRC):
                 params = n.params
                 lib_path = params[0].value
-                lib_path = lib_path.replace("[CURRDIR]", os.getcwd())
                 code = get_code(lib_path)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
@@ -926,9 +925,15 @@ class Sortout:
                     sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot only have 'not' operators.", n.ln)
 
                 if any(p in self.constant_values for p in left.properties) and any(p in self.constant_values for p in right.properties):
-                    if not left.value == right.value and is_op or left.value == right.value and not is_op:
+                    left_value = get_value_of_node(left)
+                    right_value = get_value_of_node(right)
+
+                    if not left_value == right_value and is_op or left_value == right_value and not is_op:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement will never be true.", n.ln)
                         n.add_property(ALWAYS_FALSE)
+
+                        if not n.has_property(OTHER): continue
+                        updated_nodes.append(n)
                         continue
                     else:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement are constant values and will never change the outcome of the statement.", n.ln)
@@ -1555,38 +1560,39 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right, True if currNode.has_property(AWAIT) else False))
         self.every_data = False
 
-        if not value_left:
+        if not value_left in [0, False] and not value_left:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The left condition value doesn't carry any value. Thus it cannot be compared to the right condition value.", currNode.ln)
             self.should_exit = True
             return
-        if not value_right:
+        if not value_right in [0, False] and not value_right:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The right condition value doesn't carry any value. Thus it cannot be compared to the left condition value.", currNode.ln)
             self.should_exit = True
             return
 
         condition_succeded = False
-        if currNode.has_operator("is"):
-            if not_condition:
-                if not value_left == value_right:
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-            else:
-                if value_left == value_right:
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-        elif currNode.has_operator("in"):
-            if not_condition:
-                if not any(item is value_left for item in value_right):
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-            else:
-                if any(item is value_left for item in value_right):
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
+        if not currNode.has_property(ALWAYS_FALSE):
+            if currNode.has_operator("is"):
+                if not_condition:
+                    if not value_left == value_right:
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+                else:
+                    if value_left == value_right:
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+            elif currNode.has_operator("in"):
+                if not_condition:
+                    if not any(item is value_left for item in value_right):
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+                else:
+                    if any(item is value_left for item in value_right):
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
 
         if not condition_succeded and currNode.has_property(OTHER):
             if currNode.has_property(AWAIT): currNode.child[2].value.add_property(AWAIT)

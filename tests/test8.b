@@ -4,9 +4,9 @@ start:
     :src<"[CURRDIR]/libs/std.b">:
     :src<"[CURRDIR]/libs/math.b">:
 
-    :hive:
-        honeypot _list
-    :hive:
+    #:hive:
+    #    honeypot _list
+    #:hive:
 
     #@threaded test honey delay<"Multi-threading in beenary!">
     #@threaded test1 honey delay<"Multi-threading in beenary!">
@@ -46,4 +46,23 @@ start:
     #@await _list stick test
     #@await flyout add<add<test, 1>, 1>
     #@await sleep<add<add<test, 1>, 1>>
+
+    #@await inv 1 is 1 flyout add<test, add<add<test, 1>, 1>>
+    #string honey "987 9879 797 ads 9 88"
+    #group honey replace_regex<"[0-9]+", string, " NUMBER ">
+    #group honey get_regex<"[0-9]+", string>
+    
+    #flyout group
+
+    #idx honey 0
+    #loop:
+    #    flyout group<idx>
+    #    inv idx is not sub<lengthof<group>, 1> idx honey add<idx, 1>
+    #    other flyto _end
+    #flyto loop
+
+    #inv false not is true flyout ":)"
+    #other flyout ":("
+
+_end:
 :end:
