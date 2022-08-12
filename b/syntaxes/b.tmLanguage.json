@@ -12,6 +12,9 @@
 			"include": "#addtokens"
 		},
 		{
+			"include": "#error_codes"
+		},
+		{
 			"include": "#chars"
 		},
 		{
@@ -52,6 +55,12 @@
 				"match": "\\b(?<=@)(onetime|threaded|readonly|await)\\b"
 			}]
 		},
+		"error_codes": {
+			"patterns": [{
+				"name": "keyword.operator.new",
+				"match": "\\b(?<=alert ).[a-zA-Z._]+\\b"
+			}]
+		},
 		"chars": {
 			"patterns": [
 			{
@@ -80,7 +89,7 @@
 		"builtin-functions": {
 			"patterns": [{
 				"name": "entity.name.function",
-				"match": "\\b(inv|other|flyto|flyout|wax|sting|take)\\b"
+				"match": "\\b(inv|other|flyto|flyout|wax|sting|take|alert)\\b"
 			}]
 		},
 		"keywords": {
