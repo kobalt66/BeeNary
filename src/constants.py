@@ -88,6 +88,7 @@ ONETIME                 = 0xc37
 THREADED                = 0xc38
 READONLY                = 0xc39
 AWAIT                   = 0xc40
+ALERT                   = 0xc41
 
 #####################################################
 # ERROR codes
@@ -146,6 +147,7 @@ TERMINAL                = 0xf06
 STACK                   = 0xf07
 SYSTEM                  = 0xf08
 LIBRARY                 = 0xf09
+SCRIPT                  = 0xf10
 
 #####################################################
 # LIBRARY stuff (python)
@@ -175,6 +177,7 @@ def get_exclamation_type_str(type):
     if type is STACK:           return "STACK"
     if type is SYSTEM:          return "SYSTEM"
     if type is LIBRARY:         return "LIBRARY"
+    if type is SCRIPT:          return "SCRIPT"
 
 def get_exclamation_code_str(code):
     if code is VARIABLE_NOT_FOUND_EXCEPTION:            return "VARIABLE_NOT_FOUND_EXCEPTION"                  
@@ -211,6 +214,42 @@ def get_exclamation_code_str(code):
     if code is INVALID_ARGUMENT_EXCEPTION:              return "INVALID_ARGUMENT_EXCEPTION"
     if code is PYTHON_EXCEPTION:                        return "PYTHON_EXCEPTION"
     if code is MISSING_END_TOKEN_EXCEPTION:             return "MISSING_END_TOKEN_EXCEPTION"
+
+def get_exclamtion(str_value):
+    if str_value == "VARIABLE_NOT_FOUND_EXCEPTION":             return VARIABLE_NOT_FOUND_EXCEPTION              
+    if str_value == "NO_VALUE_EXCEPTION":                       return NO_VALUE_EXCEPTION      
+    if str_value == "INDEX_OUT_OF_RANGE_EXCEPTION":             return INDEX_OUT_OF_RANGE_EXCEPTION              
+    if str_value == "FALSE_SYNTAX_EXCEPTION":                   return FALSE_SYNTAX_EXCEPTION          
+    if str_value == "FALSE_LIB_USAGE_EXCEPTION":                return FALSE_LIB_USAGE_EXCEPTION              
+    if str_value == "LIBRARY_NOT_FOUND_EXCEPTION":              return LIBRARY_NOT_FOUND_EXCEPTION              
+    if str_value == "FALSE_LIB_FUNCTION_USAGE_EXCEPTION":       return FALSE_LIB_FUNCTION_USAGE_EXCEPTION                      
+    if str_value == "INVALID_MEMBER_VALUE_EXCEPTION":           return INVALID_MEMBER_VALUE_EXCEPTION                  
+    if str_value == "MISSING_START_SECTION_EXCEPTION":          return MISSING_START_SECTION_EXCEPTION                  
+    if str_value == "INVALID_CHARACTER_EXCEPTION":              return INVALID_CHARACTER_EXCEPTION              
+    if str_value == "EXPECTED_HIVE_SECTION_EXCEPTION":          return EXPECTED_HIVE_SECTION_EXCEPTION                  
+    if str_value == "MISSING_ARGUMENTS_EXCEPTION":              return MISSING_ARGUMENTS_EXCEPTION              
+    if str_value == "TOO_MANY_ARGUMENTS_EXCEPTION":             return TOO_MANY_ARGUMENTS_EXCEPTION              
+    if str_value == "INVALID_EXPRESSION_EXCEPTION":             return INVALID_EXPRESSION_EXCEPTION              
+    if str_value == "INVALID_PARAM_DECLARATION_EXCEPTION":      return INVALID_PARAM_DECLARATION_EXCEPTION                      
+    if str_value == "INVALID_MATH_OPERATION":                   return INVALID_MATH_OPERATION          
+    if str_value == "INVALID_LIST_USAGE_EXCEPTION":             return INVALID_LIST_USAGE_EXCEPTION              
+    if str_value == "MULTI_HIVE_EXCEPTION":                     return MULTI_HIVE_EXCEPTION      
+    if str_value == "MULTI_START_EXCEPTION":                    return MULTI_START_EXCEPTION          
+    if str_value == "STUNG_INVINCIBLE_MEMBER":                  return STUNG_INVINCIBLE_MEMBER          
+    if str_value == "UNUSED_VARIABLE":                          return UNUSED_VARIABLE  
+    if str_value == "MEMBER_NAME_COLLISION":                    return MEMBER_NAME_COLLISION          
+    if str_value == "INFINITE_LOOP":                            return INFINITE_LOOP  
+    if str_value == "INVALID_NUMBER_EXCEPTION":                 return INVALID_NUMBER_EXCEPTION          
+    if str_value == "WRONG_TOKEN_TYPE_EXCEPTION":               return WRONG_TOKEN_TYPE_EXCEPTION              
+    if str_value == "TERMINAL_EXCEPTION":                       return TERMINAL_EXCEPTION      
+    if str_value == "SILENT_EXCEPTION":                         return SILENT_EXCEPTION  
+    if str_value == "USELESS_INV_EXPRESSION":                   return USELESS_INV_EXPRESSION          
+    if str_value == "INVALID_OPERATION_EXCEPTION":              return INVALID_OPERATION_EXCEPTION              
+    if str_value == "INVALID_TYPE_EXCEPTION":                   return INVALID_TYPE_EXCEPTION          
+    if str_value == "INVALID_SECTION_EXCEPTION":                return INVALID_SECTION_EXCEPTION              
+    if str_value == "INVALID_ARGUMENT_EXCEPTION":               return INVALID_ARGUMENT_EXCEPTION              
+    if str_value == "PYTHON_EXCEPTION":                         return PYTHON_EXCEPTION  
+    if str_value == "MISSING_END_TOKEN_EXCEPTION":              return MISSING_END_TOKEN_EXCEPTION              
 
 def get_token_type_str(type):
     if type is T_IDENTIFIER:            return "IDENTIFIER"        
@@ -290,6 +329,7 @@ def get_node_property_to_str(property):
     if property is THREADED:            return "THREADED"   
     if property is ONETIME:             return "ONETIME"
     if property is AWAIT:               return "AWAIT"
+    if property is ALERT:               return "ALERT"
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -380,7 +420,8 @@ BUILTIN_FUNCTION = [
     "flyout",
     "wax",
     "sting",
-    "take"
+    "take",
+    "alert"
 ]
 ADDTOKENS = [
     "readonly",

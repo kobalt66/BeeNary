@@ -64,5 +64,37 @@ start:
     #inv false not is true flyout ":)"
     #other flyout ":("
 
+    #inv 0 is false alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is not delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is not delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+    #@threaded 
+    #inv true is not delay<"..."> flyout "!"
+    #other alert FALSE_SYNTAX_EXCEPTION<"Message.">
+
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+    #@threaded alert NO_VALUE_EXCEPTION<"Gime value!">
+
 _end:
 :end:

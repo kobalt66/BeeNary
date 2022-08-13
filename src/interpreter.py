@@ -482,6 +482,8 @@ class Parser:
                     return self.sting(tokens)
                 if currToken.has_value("take"):
                     return self.take(tokens)
+                if currToken.has_value("alert"):
+                    return self.alert(tokens)
 
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
@@ -741,8 +743,22 @@ class Parser:
                 sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected an idx.", take.ln)
 
             properties = [BUILTIN, TAKE]
-
             return node(N_FUNCTION, take.ln, properties, list, idx)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
+    def alert(self, tokens):
+        try:
+            alert = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not value.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "The alert function expects an exclamation code as an identifier.", alert.ln)
+
+            properties = [BUILTIN, ALERT]
+            if value.params or value.params == []: properties.append(EXTERN)
+            return node(N_FUNCTION, alert.ln, properties, value = value.ptr, params = value.params)
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
@@ -838,10 +854,10 @@ class Sortout:
 
     def Sortout_param_check(self, nodes):
         for n in nodes:
+            has_params = True if n.params else False
+            if has_params: param_len = len(n.params)
+    
             if n.has_property(TOKEN):
-                has_params = True if n.params else False
-                if has_params: param_len = len(n.params)
-                
                 if has_params:
                     if param_len > 1:
                         if n.has_property(END):
@@ -852,6 +868,12 @@ class Sortout:
                         sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
                 elif any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
+            elif n.has_property(ALERT) and n.has_property(EXTERN):
+                if has_params:
+                    if param_len > 1 or not n.params[0].has_property(STRING):
+                        sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "An alert exclamation can only take one string message as it's argument.", n.ln) 
+                else:
+                    sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "This alert exclamation is being called like a function and thus has to have one string argument.", n.ln) 
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -1031,6 +1053,8 @@ class Sortout:
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
             if n.has_property(OTHER) and not n.has_property(INV):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An other-statement cannot be alone in a script.", n.ln)
+            if n.has_property(ALERT) and not get_exclamtion(n.value):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The exclamation code '{n.value}' is invalid.", n.ln)
 
         if not start_section and not self.library:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", 1)
@@ -1180,6 +1204,8 @@ class Sortout:
         self.Phase3_expr(currNode.value)
 
     def Phase3_identifier(self, currNode):
+        if currNode.has_property(ALERT): return
+
         updated_unused_variables = []
         object_found = False
 
@@ -1343,7 +1369,7 @@ class Sortout:
 
 class Interpreter:
     def __init__(self, nodes):
-        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING]
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT]
         self.invalid_expression = [PYTHON, HONEYCOMB]
         self.regular_values = [INT, FLOAT, BOOL, STRING]
         self.nodes = nodes
@@ -1425,6 +1451,13 @@ class Interpreter:
             self.take(currNode)
         elif currNode.has_property(INV):
             self.inv(currNode)
+        elif currNode.has_property(ALERT):
+            code = get_exclamtion(currNode.value)
+            msg = currNode.params[0].value if currNode.params else "Something went wrong..."
+            
+            sys.error_system.create_error(code, SCRIPT, msg, currNode.ln)
+            sys.cast_all_exceptions()
+            self.should_exit = True
 
     def extern(self, currNode):
         value = sys.virtual_stack.get_var(currNode)
