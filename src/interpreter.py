@@ -1593,11 +1593,11 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right, True if currNode.has_property(AWAIT) else False))
         self.every_data = False
 
-        if not value_left in [0, False] and not value_left:
+        if value_left == None:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The left condition value doesn't carry any value. Thus it cannot be compared to the right condition value.", currNode.ln)
             self.should_exit = True
             return
-        if not value_right in [0, False] and not value_right:
+        if value_right == None:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The right condition value doesn't carry any value. Thus it cannot be compared to the left condition value.", currNode.ln)
             self.should_exit = True
             return
@@ -1776,6 +1776,7 @@ class Interpreter:
             return value
 
     def extract_lib_value(self, value):
+        if not value: return value
         if value.has_property(INT):
             return int(value.value)
         if value.has_property(FLOAT):
