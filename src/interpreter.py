@@ -1574,7 +1574,7 @@ class Interpreter:
     def take(self, currNode):
         list = sys.virtual_stack.get_var(currNode.child)
 
-        valid, idx = self.validate_list_idx(list.child, currNode.value.value, currNode.ln)
+        valid, idx = self.validate_list_idx(list.child, currNode.value, currNode.ln)
         if valid:
             del list.child[idx]
             sys.virtual_stack.set_var(list)
