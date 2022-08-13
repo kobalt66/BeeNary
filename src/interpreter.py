@@ -482,6 +482,8 @@ class Parser:
                     return self.sting(tokens)
                 if currToken.has_value("take"):
                     return self.take(tokens)
+                if currToken.has_value("alert"):
+                    return self.alert(tokens)
 
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
@@ -741,13 +743,27 @@ class Parser:
                 sys.error_system.create_error(NO_VALUE_EXCEPTION, PARSING, "Expected an idx.", take.ln)
 
             properties = [BUILTIN, TAKE]
-
             return node(N_FUNCTION, take.ln, properties, list, idx)
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
+    def alert(self, tokens):
+        try:
+            alert = tokens[self.idx]
+
+            self.idx += 1
+            value = self.expr(tokens)
+            if not value or not value.has_property(IDENTIFIER):
+                sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, "The alert function expects an exclamation code as an identifier.", alert.ln)
+
+            properties = [BUILTIN, ALERT]
+            if value.params or value.params == []: properties.append(EXTERN)
+            return node(N_FUNCTION, alert.ln, properties, value = value.ptr, params = value.params)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
     def string(self, str_value, ln):
-        return node(N_VALUE, ln, [STRING], value=str_value)
+        return node(N_VALUE, ln, [STRING], value=str_value.replace("[CURRDIR]", os.getcwd()).replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r"))
     
     def number(self, type, number, ln):
         property = INT if type is T_INT else FLOAT
@@ -838,10 +854,10 @@ class Sortout:
 
     def Sortout_param_check(self, nodes):
         for n in nodes:
+            has_params = True if n.params else False
+            if has_params: param_len = len(n.params)
+    
             if n.has_property(TOKEN):
-                has_params = True if n.params else False
-                if has_params: param_len = len(n.params)
-                
                 if has_params:
                     if param_len > 1:
                         if n.has_property(END):
@@ -852,6 +868,12 @@ class Sortout:
                         sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] cannot have arguments.", n.ln)
                 elif any(p in self.tokens_with_parmas for p in n.properties):
                     sys.error_system.create_error(MISSING_ARGUMENTS_EXCEPTION, SORTOUT, "A token with the properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "] has to have one argument.", n.ln)
+            elif n.has_property(ALERT) and n.has_property(EXTERN):
+                if has_params:
+                    if param_len > 1 or not n.params[0].has_property(STRING):
+                        sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "An alert exclamation can only take one string message as it's argument.", n.ln) 
+                else:
+                    sys.error_system.create_error(INVALID_PARAM_DECLARATION_EXCEPTION, SORTOUT, "This alert exclamation is being called like a function and thus has to have one string argument.", n.ln) 
 
         sys.error_system.throw_errors()
         sys.error_system.throw_warnings()
@@ -865,7 +887,6 @@ class Sortout:
             if n.has_property(SRC):
                 params = n.params
                 lib_path = params[0].value
-                lib_path = lib_path.replace("[CURRDIR]", os.getcwd())
                 code = get_code(lib_path)
                 if not code:
                     sys.error_system.create_error(LIBRARY_NOT_FOUND_EXCEPTION, SORTOUT, f"The meadow at '{params[0].value}' does not exist.", n.ln)
@@ -926,9 +947,15 @@ class Sortout:
                     sys.error_system.create_error(INVALID_OPERATION_EXCEPTION, SORTOUT, "An inv-statement cannot only have 'not' operators.", n.ln)
 
                 if any(p in self.constant_values for p in left.properties) and any(p in self.constant_values for p in right.properties):
-                    if not left.value == right.value and is_op or left.value == right.value and not is_op:
+                    left_value = get_value_of_node(left)
+                    right_value = get_value_of_node(right)
+
+                    if not left_value == right_value and is_op or left_value == right_value and not is_op:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement will never be true.", n.ln)
                         n.add_property(ALWAYS_FALSE)
+
+                        if not n.has_property(OTHER): continue
+                        updated_nodes.append(n)
                         continue
                     else:
                         sys.error_system.create_warning(USELESS_INV_EXPRESSION, SORTOUT, "The left and right condition of the inv-statement are constant values and will never change the outcome of the statement.", n.ln)
@@ -1026,6 +1053,8 @@ class Sortout:
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A keyword like 'honey' and 'stick' cannot stand alone in the script.", n.ln)
             if n.has_property(OTHER) and not n.has_property(INV):
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "An other-statement cannot be alone in a script.", n.ln)
+            if n.has_property(ALERT) and not get_exclamtion(n.value):
+                sys.error_system.create_error(INVALID_ARGUMENT_EXCEPTION, SORTOUT, f"The exclamation code '{n.value}' is invalid.", n.ln)
 
         if not start_section and not self.library:
             sys.error_system.create_error(MISSING_START_SECTION_EXCEPTION, SORTOUT, "There has to be a start section in a script! This will be the starting point for the interpreter.", 1)
@@ -1175,6 +1204,8 @@ class Sortout:
         self.Phase3_expr(currNode.value)
 
     def Phase3_identifier(self, currNode):
+        if currNode.has_property(ALERT): return
+
         updated_unused_variables = []
         object_found = False
 
@@ -1338,7 +1369,7 @@ class Sortout:
 
 class Interpreter:
     def __init__(self, nodes):
-        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING]
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT]
         self.invalid_expression = [PYTHON, HONEYCOMB]
         self.regular_values = [INT, FLOAT, BOOL, STRING]
         self.nodes = nodes
@@ -1420,6 +1451,13 @@ class Interpreter:
             self.take(currNode)
         elif currNode.has_property(INV):
             self.inv(currNode)
+        elif currNode.has_property(ALERT):
+            code = get_exclamtion(currNode.value)
+            msg = currNode.params[0].value if currNode.params else "Something went wrong..."
+            
+            sys.error_system.create_error(code, SCRIPT, msg, currNode.ln)
+            sys.cast_all_exceptions()
+            self.should_exit = True
 
     def extern(self, currNode):
         value = sys.virtual_stack.get_var(currNode)
@@ -1536,7 +1574,7 @@ class Interpreter:
     def take(self, currNode):
         list = sys.virtual_stack.get_var(currNode.child)
 
-        valid, idx = self.validate_list_idx(list.child, currNode.value.value, currNode.ln)
+        valid, idx = self.validate_list_idx(list.child, currNode.value, currNode.ln)
         if valid:
             del list.child[idx]
             sys.virtual_stack.set_var(list)
@@ -1555,38 +1593,39 @@ class Interpreter:
         value_right = self.extract_lib_value(self.extract_value(right, True if currNode.has_property(AWAIT) else False))
         self.every_data = False
 
-        if not value_left:
+        if value_left == None:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The left condition value doesn't carry any value. Thus it cannot be compared to the right condition value.", currNode.ln)
             self.should_exit = True
             return
-        if not value_right:
+        if value_right == None:
             sys.error_system.create_error(NO_VALUE_EXCEPTION, INTERPRETING, "The right condition value doesn't carry any value. Thus it cannot be compared to the left condition value.", currNode.ln)
             self.should_exit = True
             return
 
         condition_succeded = False
-        if currNode.has_operator("is"):
-            if not_condition:
-                if not value_left == value_right:
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-            else:
-                if value_left == value_right:
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-        elif currNode.has_operator("in"):
-            if not_condition:
-                if not any(item is value_left for item in value_right):
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
-            else:
-                if any(item is value_left for item in value_right):
-                    if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
-                    self.expression(currNode.value)
-                    condition_succeded = True
+        if not currNode.has_property(ALWAYS_FALSE):
+            if currNode.has_operator("is"):
+                if not_condition:
+                    if not value_left == value_right:
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+                else:
+                    if value_left == value_right:
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+            elif currNode.has_operator("in"):
+                if not_condition:
+                    if not any(item is value_left for item in value_right):
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
+                else:
+                    if any(item is value_left for item in value_right):
+                        if currNode.has_property(AWAIT): currNode.value.add_property(AWAIT)
+                        self.expression(currNode.value)
+                        condition_succeded = True
 
         if not condition_succeded and currNode.has_property(OTHER):
             if currNode.has_property(AWAIT): currNode.child[2].value.add_property(AWAIT)
@@ -1737,6 +1776,7 @@ class Interpreter:
             return value
 
     def extract_lib_value(self, value):
+        if not value: return value
         if value.has_property(INT):
             return int(value.value)
         if value.has_property(FLOAT):

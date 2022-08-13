@@ -20,6 +20,4 @@ init_e:
     inv 1 is not 0          flyout "wtf"
     inv 1 is 1              flyout "true forever"
 loop:
-    :src<"[CURRDIR]/libs/vars.b">:
-    flyout pie
 :end:
