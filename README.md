@@ -34,12 +34,17 @@ _Below you find the installation guide. Note that it works bests if you are on L
 
 ### How to use BeeNary
 1. Too create a beenary program create a file labeled like this: `name.b`
+
 <br>
+
 2. Now add some code to your file
+
 <br>
-<br>
+
 ![Example code](./Images/code.png)
+
 3. Now run the program in the terminal
+
 <br>
-<br>
+
 ![Example code](./Images/terminal.png)
