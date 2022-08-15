@@ -89,7 +89,7 @@
 		"builtin-functions": {
 			"patterns": [{
 				"name": "entity.name.function",
-				"match": "\\b(inv|other|flyto|flyout|wax|sting|take|alert)\\b"
+				"match": "\\b(inv|other|flyto|flyout|wax|sting|take|alert|ret)\\b"
 			}]
 		},
 		"keywords": {
