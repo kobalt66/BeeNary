@@ -58,7 +58,13 @@ wax lengthof :python<"python.std">:
 wax sleep :python<"python.std">:
 
 :functionptr:
+wax time :python<"python.std">:
+
+:functionptr:
 wax replace_regex :python<"python.std">:
 
 :functionptr:
 wax get_regex :python<"python.std">:
+
+:functionptr:
+wax string_format :python<"python.std">:

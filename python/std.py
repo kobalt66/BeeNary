@@ -1,9 +1,10 @@
 from src.classes import system
 import src.constants as c
 import sys as s
-import os, os.path, shutil, time, re
+import os, os.path, shutil, time as t, re
 
 list_type = list
+curr_time = t.time
 sys = system("", "std.b", True)
 sys.error_system.constants_module = c
 
@@ -203,10 +204,19 @@ sleep_arg_types = [c.L_NUMBER]
 def sleep(params):
     try:
         num = params[0]
-        time.sleep(num)
+        t.sleep(num)
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
+
+time_arg_count = 0
+time_arg_types = []
+def time(params):
+    try: return curr_time()
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False
 
 replace_regex_arg_count = 3
 replace_regex_arg_types = [c.L_STRING, c.L_STRING, c.L_STRING]
@@ -233,3 +243,38 @@ def get_regex(params):
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
         return False 
+
+string_format_arg_count = -1
+string_format_arg_types = [c.L_ANY]
+def string_format(params):
+    try:
+        if not len(params) > 1:
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "Pass in a string followed by values which will replace marked spots inside the string!")
+            sys.cast_all_exceptions() 
+        
+        if not isinstance(params[0], str):
+            sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The first argument has to be a string.")
+            sys.cast_all_exceptions()
+        
+        idx = 0
+        tmp = '{' + str(idx) + '}'
+        string = params[0]
+        replacements = params[1:]
+        for p in replacements:
+            if not isinstance(p, (str, int, float, bool)):
+                sys.error_system.create_error(c.INVALID_ARGUMENT_EXCEPTION, c.LIBRARY, "The replacement values can only be of values of the following types [string, int, float, bool].")
+                sys.cast_all_exceptions()
+
+            if not tmp in string:
+                sys.error_system.create_error(c.MISSING_ARGUMENTS_EXCEPTION, c.LIBRARY, f"The string doesn't contain the template '{tmp}'. Make sure to add a template for each value.")
+                sys.cast_all_exceptions()
+
+            string = string.replace(tmp, str(p))
+            idx += 1
+            tmp = '{' + str(idx) + '}'
+
+        return string
+    except Exception as e:
+        sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
+        return False

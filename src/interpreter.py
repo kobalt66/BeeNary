@@ -484,6 +484,8 @@ class Parser:
                     return self.take(tokens)
                 if currToken.has_value("alert"):
                     return self.alert(tokens)
+                if currToken.has_value("ret"):
+                    return self.ret(tokens)
 
                 sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, PARSING, f"The expression '{currToken.str_value}' is invalid.", currToken.ln)
                 return None
@@ -762,6 +764,14 @@ class Parser:
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
+    def ret(self, tokens):
+        try:
+            ret = tokens[self.idx]
+            properties = [BUILTIN, RET]
+            return node(N_FUNCTION, ret.ln, properties)
+        except Exception as e:
+            sys.error_system.create_silent_from_exception(e, PARSING)
+
     def string(self, str_value, ln):
         return node(N_VALUE, ln, [STRING], value=str_value.replace("[CURRDIR]", os.getcwd()).replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r"))
     
@@ -824,7 +834,7 @@ class Sortout:
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
         self.stack_objects = [SECTION, WAX]
-        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
+        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, ALERT, RET, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
         self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_onetime_expressions = [HONEY]
         self.valid_threaded_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
@@ -1369,7 +1379,7 @@ class Sortout:
 
 class Interpreter:
     def __init__(self, nodes):
-        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT]
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT, RET]
         self.invalid_expression = [PYTHON, HONEYCOMB]
         self.regular_values = [INT, FLOAT, BOOL, STRING]
         self.nodes = nodes
@@ -1378,6 +1388,7 @@ class Interpreter:
         self.init_functionptr = False
         self.in_library = False
         self.every_data = False
+        self.last_jump_idx = -1
 
     def execute(self):
         start = sys.virtual_stack.get_var_by_ptr("start")
@@ -1444,6 +1455,7 @@ class Interpreter:
         elif currNode.has_property(FLYTO):
             section = sys.virtual_stack.get_var(currNode.value)
             self.idx = section.idx
+            self.last_jump_idx = currNode.idx
         elif currNode.has_property(STING):
             var = currNode.value
             sys.virtual_stack.del_var(var)
@@ -1458,6 +1470,10 @@ class Interpreter:
             sys.error_system.create_error(code, SCRIPT, msg, currNode.ln)
             sys.cast_all_exceptions()
             self.should_exit = True
+        elif currNode.has_property(RET):
+            if self.last_jump_idx == -1: return
+            self.idx = self.last_jump_idx
+            self.last_jump_idx = -1
 
     def extern(self, currNode):
         value = sys.virtual_stack.get_var(currNode)

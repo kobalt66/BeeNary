@@ -112,7 +112,6 @@ def lt(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
-        return False
 
 gt_arg_count = 2
 gt_arg_types = [c.L_NUMBER, c.L_NUMBER]
@@ -125,7 +124,6 @@ def gt(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
-        return False
 
 sqrt_arg_count = 1
 sqrt_arg_types = [c.L_NUMBER]

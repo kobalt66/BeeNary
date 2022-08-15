@@ -89,6 +89,7 @@ THREADED                = 0xc38
 READONLY                = 0xc39
 AWAIT                   = 0xc40
 ALERT                   = 0xc41
+RET                     = 0xc42
 
 #####################################################
 # ERROR codes
@@ -330,6 +331,7 @@ def get_node_property_to_str(property):
     if property is ONETIME:             return "ONETIME"
     if property is AWAIT:               return "AWAIT"
     if property is ALERT:               return "ALERT"
+    if property is RET:                 return "RET"
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -421,7 +423,8 @@ BUILTIN_FUNCTION = [
     "wax",
     "sting",
     "take",
-    "alert"
+    "alert",
+    "ret"
 ]
 ADDTOKENS = [
     "readonly",

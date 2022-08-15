@@ -8,6 +8,12 @@ wax e 2.71828182845904523536
 ########################## Basic math ##########################
 
 :functionptr:
+wax lt :python<"python.math">:
+
+:functionptr:
+wax gt :python<"python.math">:
+
+:functionptr:
 wax int :python<"python.math">:
 
 :functionptr:
@@ -27,12 +33,6 @@ wax mul :python<"python.math">:
 
 :functionptr:
 wax pow :python<"python.math">:
-
-:functionptr:
-wax lt :python<"python.math">:
-
-:functionptr:
-wax gt :python<"python.math">:
 
 :functionptr:
 wax sqrt :python<"python.math">:
