@@ -197,7 +197,7 @@ class Lexer:
                 self.tokens.append(token(T_GT, '>', self.ln))
                 if self.advance(): break
             elif self.currChar == '@':
-                self.tokens.append(token(T_ADD, '>', self.ln))
+                self.tokens.append(token(T_ADD, '@', self.ln))
                 if self.advance(): break
             elif self.currChar == '#':
                 self.tokens.append(self.comment())
@@ -210,6 +210,12 @@ class Lexer:
                 if self.advance(): break
             elif self.currChar == ' ':
                 self.tokens.append(token(T_WHITESPACE, "' '", self.ln))
+                if self.advance(): break
+            elif self.currChar == '(':
+                self.tokens.append(token(T_LPARAN, "(", self.ln))
+                if self.advance(): break
+            elif self.currChar == ')':
+                self.tokens.append(token(T_RPARAN, ")", self.ln))
                 if self.advance(): break
             elif self.currChar in IDENTIFIER_CHARS:
                 self.tokens.append(self.word())
@@ -453,6 +459,8 @@ class Parser:
                 self.node_list.append(self.section(self.tokens))
             elif currToken.type in self.token_types:
                 self.node_list.append(self.token(self.tokens))
+            elif currToken.typeof(T_RPARAN):
+                self.node_list.append(node(N_SCOPE, currToken.ln, [BUILTIN, SCOPE_CLOSE]))
             elif not currToken.str_value in " \\n\\t\\r":
                 sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, PARSING, f"The token '{currToken.str_value}' is invalid at it's current position.", currToken.ln)
 
@@ -819,6 +827,12 @@ class Parser:
                     name = self.simple_identifier(identifier)
                     properties = [BUILTIN, STICK, IDENTIFIER]
                     return node(N_FUNCTION, identifier.ln, properties, name, value)
+                elif following.typeof(T_LPARAN):
+                    self.idx += 2
+                    properties = [BUILTIN, SCOPE, SCOPE_OPEN]
+                    n = node(N_SCOPE, identifier.ln, properties)
+                    n.set_ptr(identifier.str_value)
+                    return n
 
             n = node(N_VALUE, identifier.ln, [IDENTIFIER])
             n.set_ptr(identifier.str_value)
@@ -826,7 +840,7 @@ class Parser:
         except Exception as e:
             sys.error_system.create_silent_from_exception(e, PARSING)
 
-
+ 
 class Sortout:
     def __init__(self, nodes, library = False, preset_unused_vars = None, preset_used_var_names = None, sections = None):
         self.nodes = nodes
@@ -834,7 +848,7 @@ class Sortout:
         self.valid_meadow_properties = [WAX, FUNCTIONPTR, HONEYCOMB, PYTHON, FUNCTIONPTR, MEADOW]
         self.valid_meadow_value_properties = [PYTHON, HONEYCOMB]
         self.stack_objects = [SECTION, WAX]
-        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, ALERT, RET, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT]
+        self.valid_expressions = [FLYTO, FLYOUT, INV, TAKE, STING, WAX, ALERT, RET, HONEY, STICK, TOKEN, SECTION, EXTERN, HONEYPOT, SCOPE]
         self.valid_addtoken_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
         self.valid_onetime_expressions = [HONEY]
         self.valid_threaded_expressions = [FLYOUT, INV, HONEY, STICK, EXTERN]
@@ -843,6 +857,7 @@ class Sortout:
         self.tokens_with_parmas = [PYTHON, SRC]
         self.tokens_only_string_args = [PYTHON, SRC, END]
         self.constant_values = [INT, FLOAT, STRING, BOOL]
+        self.invalid_scope_expressions = [FLYTO, SECTION]
         
         self.used_var_names = {} if not preset_used_var_names else preset_used_var_names
         self.used_sections = ["start"]
@@ -859,6 +874,7 @@ class Sortout:
         nodes = self.Sortout_inv(nodes)
         nodes = self.Sortout_addtoken(nodes)
         nodes = self.Sortout_others(nodes)
+        nodes = self.Sortout_scopes(nodes)
         self.nodes = nodes
         return self.nodes
 
@@ -1076,6 +1092,61 @@ class Sortout:
         sys.error_system.throw_silent(sys.show_silent_warnings)
         return nodes
 
+    def Sortout_scopes(self, nodes):
+        updated_nodes = []
+
+        scope_nodes = []
+        scope_open = False
+        scope_closed = False
+        scope = None
+        for n in nodes:
+            if n.has_property(SCOPE_OPEN):
+                if scope_open:
+                    sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A scope cannot contain another scope.", n.ln)
+                    break
+
+                scope_open = True
+                scope = n.copy()
+                continue
+            if n.has_property(SCOPE_CLOSE):
+                if not scope_open:
+                    sys.error_system.create_error(INVALID_CHARACTER_EXCEPTION, SORTOUT, "The character ')' is invalid at the current position.", n.ln)
+                    break
+
+                scope_open = False
+                scope_closed = False
+
+                idx = 0
+                final_scope_nodes = []
+                for scope_node in scope_nodes:
+                    new_node = scope_node.copy()
+                    new_node.idx = idx
+                    final_scope_nodes.append(new_node)
+                    idx += 1 
+
+                properties = [BUILTIN, SCOPE]
+                s = node(N_SCOPE, n.ln, properties, final_scope_nodes)
+                s.set_ptr(scope.ptr)
+                updated_nodes.append(s)
+                scope_nodes = []
+                scope = None
+                continue
+            
+            if scope_open:  
+                if any(p in self.invalid_scope_expressions for p in n.properties):
+                    sys.error_system.create_error(INVALID_EXPRESSION_EXCEPTION, SORTOUT, "A scope cannot contain nodes with the following properties [" + ' '.join(get_node_property_to_str(p) for p in n.properties) + "].", n.ln)
+                    continue
+                scope_nodes.append(n)
+            else:           updated_nodes.append(n)
+
+        if scope_open and not scope_closed:
+            sys.error_system.create_error(FALSE_SYNTAX_EXCEPTION, SORTOUT, "A scope has to be closed by a ')' character.", n.ln)
+
+        sys.error_system.throw_errors()
+        sys.error_system.throw_warnings()
+        sys.error_system.throw_silent(sys.show_silent_warnings)         
+        return updated_nodes
+
     def Phase2(self):
         idx = 0
         for n in self.nodes:
@@ -1147,6 +1218,8 @@ class Sortout:
             self.Phase3_list(currNode)
         elif currNode.has_property(IDENTIFIER):
             self.Phase3_identifier(currNode)
+        elif currNode.has_property(SCOPE):
+            self.Phase3_scope(currNode)
 
     def Phase3_inv(self, currNode):
         left = currNode.child[0]
@@ -1234,6 +1307,15 @@ class Sortout:
             sys.error_system.create_error(VARIABLE_NOT_FOUND_EXCEPTION, SORTOUT, f"The data object '{currNode.ptr}' is not defined.", currNode.ln)
 
         self.unused_variables = updated_unused_variables
+
+    def Phase3_scope(self, currNode):
+        tuple = (currNode.ptr, "list", False)
+        defined, var = self.Phase3_is_defined(currNode.ptr, currNode.ln, True)
+
+        if defined:
+            sys.error_system.create_error(SCOPE_NAME_COLLISION, SORTOUT, f"The name '{currNode.ptr}' seems to be already taken by another variable. Change the variable name or the scope name.", currNode.ln)
+        else:
+            self.unused_variables.append(tuple)
 
     def Phase3_wax(self, currNode):
         tuple = (currNode.child.ptr, "member", False)
@@ -1379,7 +1461,7 @@ class Sortout:
 
 class Interpreter:
     def __init__(self, nodes):
-        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT, RET]
+        self.function_properties = [FLYTO, FLYOUT, INV, TAKE, STING, ALERT, RET, SCOPE]
         self.invalid_expression = [PYTHON, HONEYCOMB]
         self.regular_values = [INT, FLOAT, BOOL, STRING]
         self.nodes = nodes
@@ -1416,7 +1498,9 @@ class Interpreter:
         sys.error_system.create_silent(sys.show_silent_warnings)
 
     def expression(self, currNode):
-        if any(p in self.function_properties for p in currNode.properties):
+        if currNode.has_property(SCOPE):
+            self.scope(currNode)
+        elif any(p in self.function_properties for p in currNode.properties):
             if currNode.has_property(THREADED) or currNode.has_property(AWAIT):
                 threading.Thread(target=self.functions, args=[currNode]).start()
                 return
@@ -1529,6 +1613,24 @@ class Interpreter:
             if valid:
                 value = value.value.child[idx]
                 return self.extract_value(value)
+        elif value.has_property(SCOPE):
+            if len(currNode.params) > 0:
+                sys.error_system.create_error(TOO_MANY_ARGUMENTS_EXCEPTION, INTERPRETING, "A scope cannot be indexed.", currNode.ln)
+                self.should_exit = True
+                return
+
+            idx = -1
+            updated_nodes = []
+            for n in self.nodes:
+                idx += 1
+                if self.idx == idx:
+                    updated_nodes.append(n)
+                    updated_nodes.extend(value.child)
+                    continue
+                updated_nodes.append(n)
+                continue
+
+            self.nodes = updated_nodes
 
     def honey(self, currNode):
         honey = currNode.copy()
@@ -1646,6 +1748,9 @@ class Interpreter:
         if not condition_succeded and currNode.has_property(OTHER):
             if currNode.has_property(AWAIT): currNode.child[2].value.add_property(AWAIT)
             self.expression(currNode.child[2].value)
+
+    def scope(self, currNode):
+        sys.virtual_stack.init_var(currNode)
 
     def validate_list_idx(self, list, param, ln):
         idx = -1
@@ -1887,14 +1992,14 @@ class Compiler:
 
     def compile(self):
         self.script = """section .data
-    text db "Hello, World!",10
+        text db "Hello, World!",10
  
-section .text
-    global _start
- 
-_start:
-    mov ah, 0x0e
-    mov al, [text]
-    int 0x10
+        section .text
+            global _start
+
+        _start:
+            mov ah, 0x0e
+            mov al, [text]
+            int 0x10
         """
         self.create_script()

@@ -1,5 +1,5 @@
-try:        from constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
-except:     from src.constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER
+try:        from constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER, SCOPE
+except:     from src.constants import HONEY, LIST, SECTION, TERMINAL_EXCEPTION, VARIABLE_NOT_FOUND_EXCEPTION, WAX, MEADOW_MEMBER, SCOPE
 try:        from constants import STACK
 except:     from src.constants import STACK
 try:        import classes
@@ -71,3 +71,6 @@ class VirtualStack:
         elif object.has_property(LIST) or object.has_property(SECTION):
             if not self.isset(object.value):
                 self.stack[object.value.ptr] = object
+        elif object.has_property(SCOPE):
+            if not self.isset(object.ptr):
+                self.stack[object.ptr] = object

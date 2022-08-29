@@ -28,6 +28,8 @@ T_SYMBOL                = 0xa20
 T_NEWLINE               = 0xa21
 T_WHITESPACE            = 0xa22
 T_ADD                   = 0xa23
+T_LPARAN                = 0xa24
+T_RPARAN                = 0xa25
 
 #####################################################
 # NODE types
@@ -43,6 +45,7 @@ N_VALUE                 = 0xb07
 N_PARAM                 = 0xb08
 N_LIB                   = 0xb09
 N_ADDTOKEN              = 0xb10
+N_SCOPE                 = 0xb11
 
 #####################################################
 # NODE properties
@@ -90,6 +93,9 @@ READONLY                = 0xc39
 AWAIT                   = 0xc40
 ALERT                   = 0xc41
 RET                     = 0xc42
+SCOPE                   = 0xc43
+SCOPE_OPEN              = 0xc44
+SCOPE_CLOSE             = 0xc45
 
 #####################################################
 # ERROR codes
@@ -123,6 +129,7 @@ INVALID_TYPE_EXCEPTION                  = 0xd25
 INVALID_SECTION_EXCEPTION               = 0xd26
 INVALID_ARGUMENT_EXCEPTION              = 0xd27
 PYTHON_EXCEPTION                        = 0xd28
+SCOPE_NAME_COLLISION                    = 0xd29
 
 #####################################################
 # WARNING codes
@@ -215,6 +222,7 @@ def get_exclamation_code_str(code):
     if code is INVALID_ARGUMENT_EXCEPTION:              return "INVALID_ARGUMENT_EXCEPTION"
     if code is PYTHON_EXCEPTION:                        return "PYTHON_EXCEPTION"
     if code is MISSING_END_TOKEN_EXCEPTION:             return "MISSING_END_TOKEN_EXCEPTION"
+    if code is SCOPE_NAME_COLLISION:                    return "SCOPE_NAME_COLLISION"
 
 def get_exclamtion(str_value):
     if str_value == "VARIABLE_NOT_FOUND_EXCEPTION":             return VARIABLE_NOT_FOUND_EXCEPTION              
@@ -275,7 +283,9 @@ def get_token_type_str(type):
     if type is T_SYMBOL:                return "SYMBOL" 
     if type is T_NEWLINE:               return "NEWLINE"
     if type is T_WHITESPACE:            return "WHITESPACE"
-    if type is T_ADD:                   return "ADD"           
+    if type is T_ADD:                   return "ADD"     
+    if type is T_LPARAN:                return "LPARAN"
+    if type is T_RPARAN:                return "RPARAN"      
 
 def get_node_type_to_str(type):
     if type is N_TOKEN:                 return "TOKEN"  
@@ -288,6 +298,7 @@ def get_node_type_to_str(type):
     if type is N_PARAM:                 return "PARAM"
     if type is N_LIB:                   return "LIB"    
     if type is N_ADDTOKEN:              return "ADDTOKEN"
+    if type is N_SCOPE:                 return "SCOPE"
 
 def get_node_property_to_str(property):
     if property is MEADOW_MEMBER:       return "MEADOW_MEMBER"
@@ -332,6 +343,9 @@ def get_node_property_to_str(property):
     if property is AWAIT:               return "AWAIT"
     if property is ALERT:               return "ALERT"
     if property is RET:                 return "RET"
+    if property is SCOPE:               return "SCOPE"
+    if property is SCOPE_OPEN:          return "SCOPE_OPEN"
+    if property is SCOPE_CLOSE:         return "SCOPE_CLOSE"
 
 def get_node_property_by_value(str_value):
     if str_value == "honeycomb":        return HONEYCOMB   
@@ -390,7 +404,7 @@ def get_value_of_node(value):
 
 IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöü_'
 NUMBER_CHARS = '-0123456789'
-VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#@\" '
+VALID_CHARS = IDENTIFIER_CHARS + NUMBER_CHARS + '\0\n\t<>:,#@\()" '
 KEYWORDS = [
     "true",
     "false",
@@ -459,5 +473,6 @@ FATAL_ERRORS = [
     INVALID_TYPE_EXCEPTION,
     INVALID_SECTION_EXCEPTION,
     INVALID_ARGUMENT_EXCEPTION,
-    PYTHON_EXCEPTION
+    PYTHON_EXCEPTION,
+    SCOPE_NAME_COLLISION
 ]

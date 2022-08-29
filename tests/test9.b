@@ -22,6 +22,11 @@ start:
     #flyto _7
     #flyto _8
     #flyto _9
+
+    :src<"[CURRDIR]/libs/std.b">:
+    :src<"[CURRDIR]/libs/math.b">:
+    :src<"[CURRDIR]/libs/test_lib.b">:
+    
 :end:
 
 _5:
