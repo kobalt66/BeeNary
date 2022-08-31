@@ -1,3 +1,4 @@
+from asyncio import start_server
 import io, os, threading
 import sys as s
 from time import sleep
@@ -10,6 +11,21 @@ except:     from src.classes import *
 s.path.insert(1, os.getcwd())
 
 sys = None
+
+
+def execute_nodelist(nodes):
+    global sys
+    sys = system("", "<library>")
+
+    sortout = Sortout(nodes)
+    sorted_nodes = sortout.Phase1()
+    sorted_nodes = sortout.Phase2()
+    sorted_nodes = sortout.Phase3()
+    sorted_nodes = sortout.Finish()
+
+    interpreter = Interpreter(sorted_nodes)
+    interpreter.execute()
+
 
 def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, argv10):
     global sys
@@ -45,7 +61,6 @@ def run(code, argv1, argv2, argv3, argv4, argv5, argv6, argv7, argv8, argv9, arg
 
     interpreter = Interpreter(sorted_nodes)
     interpreter.execute()
-    sys.stdout.flush()
 
     if sys.show_tokens:
         print("\n\nTOKENS:")
@@ -1796,7 +1811,9 @@ class Interpreter:
             if arg_types[idx] == L_ANY: continue
 
             if p.has_property(IDENTIFIER):
+                self.every_data = True
                 p = self.extract_value(p, _await)
+                self.every_data = False
 
             param_types = []
             for property in p.properties:
@@ -1822,6 +1839,7 @@ class Interpreter:
         types = self.regular_values
         types.append(LIST)
         types.append(OBJECT)
+        types.append(SCOPE)
         types
         final_params = []
         for p in currNode.params:
@@ -1893,6 +1911,10 @@ class Interpreter:
             return token
         elif value.has_property(OBJECT):
             return value
+        elif value.has_property(SCOPE):
+            if not self.every_data:
+                return Parser(None).string(f"{value.ptr}: [ <object> scope ]", value.ln)
+            return value
         elif any(p in self.regular_values for p in value.properties):
             return value
 
@@ -1908,6 +1930,22 @@ class Interpreter:
             return value.value
         if value.has_property(LIST) or value.has_property(OBJECT):
             return [self.extract_lib_value(v) for v in value.child]
+        if value.has_property(SCOPE):
+            node_list = value.child
+
+            nodes = []
+            nodes.append(node(N_START, 0, [SECTION], value=Parser(None).simple_identifier(token(T_IDENTIFIER, "start", 0))))
+
+            ln = 0
+            for n in node_list:
+                ln += 1
+                new_node = n.copy()
+                new_node.ln = ln
+                new_node.idx = ln
+                nodes.append(new_node)
+
+            nodes.append(node(N_END, ln, [END, TOKEN, BUILTIN], value=Parser(None).string("end", 0)))
+            return nodes
 
     def tokens(self, currNode):
         if currNode.typeof(N_END):

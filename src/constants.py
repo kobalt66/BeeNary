@@ -170,6 +170,7 @@ L_OBJECT                = 0xfa05
 L_LIST                  = 0xfa06
 L_ANY                   = 0xfa07
 L_NUMBER                = 0xfa08
+L_SCOPE                 = 0xfa09
 
 #####################################################
 # TO STRING functions
@@ -377,6 +378,7 @@ def get_value_type_to_lib_value_type(type):
     if type is OBJECT:                  return L_OBJECT   
     if type is LIST:                    return L_LIST
     if type is EXTERN:                  return EXTERN
+    if type is SCOPE:                   return L_SCOPE
 
 def get_lib_value_type_to_str(type):    
     if type == L_NUMBER:                return "NUMBER"
@@ -387,6 +389,7 @@ def get_lib_value_type_to_str(type):
     if type == L_OBJECT:                return "OBJECT"
     if type == L_LIST:                  return "LIST"
     if type == L_ANY:                   return "ANY"
+    if type == L_SCOPE:                 return "SCOPE"
 
 def get_value_of_node(value):
     if value.has_property(INT):
