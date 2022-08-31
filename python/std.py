@@ -1,4 +1,5 @@
 from src.classes import system
+import src.interpreter as i
 import src.constants as c
 import sys as s
 import os, os.path, shutil, time as t, re
@@ -277,4 +278,14 @@ def string_format(params):
     except Exception as e:
         sys.error_system.create_warning_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
         sys.cast_all_exceptions()
-        return False
+        return 
+        
+execute_scope_arg_count = 1
+execute_scope_arg_types = [c.L_SCOPE]
+def execute_scope(params):
+    try:
+        scope = params[0]
+        i.execute_nodelist(scope)
+    except Exception as e:
+        sys.error_system.create_error_from_exception(e, c.PYTHON_EXCEPTION, c.LIBRARY, -1)
+        sys.cast_all_exceptions()
